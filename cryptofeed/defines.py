@@ -64,6 +64,7 @@ LIQUIDATIONS = 'liquidations'
 INDEX = 'index'
 UNSUPPORTED = 'unsupported'
 CANDLES = 'candles'
+MANAGER = 'manager'
 
 # Account Data / Authenticated Channels
 ORDER_INFO = 'order_info'

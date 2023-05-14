@@ -201,3 +201,9 @@ class FillsRedis(RedisZSetCallback, BackendCallback):
 
 class FillsStream(RedisStreamCallback, BackendCallback):
     default_key = 'fills'
+
+class ManagerRedis(RedisZSetCallback, BackendCallback):
+    default_key = 'manager'
+
+class ManagerStream(RedisStreamCallback, BackendCallback):
+    default_key = 'manager'

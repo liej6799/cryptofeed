@@ -10,6 +10,7 @@ import logging
 import signal
 from signal import SIGABRT, SIGINT, SIGTERM
 import sys
+import time
 from typing import List
 
 try:
@@ -22,13 +23,12 @@ except ImportError:
 from yapic import json
 
 from cryptofeed.config import Config
-from cryptofeed.defines import L2_BOOK
+from cryptofeed.defines import L2_BOOK, MANAGER
 from cryptofeed.feed import Feed
 from cryptofeed.log import get_logger
 from cryptofeed.nbbo import NBBO
 from cryptofeed.exchanges import EXCHANGE_MAP
-
-
+from cryptofeed.types import Ticker
 LOG = logging.getLogger('feedhandler')
 
 
@@ -139,6 +139,9 @@ class FeedHandler:
         if install_signal_handlers:
             setup_signal_handlers(loop)
 
+        loop.create_task(self.manager())
+   
+
         for feed in self.feeds:
             feed.start(loop)
 
@@ -217,3 +220,22 @@ class FeedHandler:
 
         LOG.info('FH: close the AsyncIO loop')
         loop.close()
+
+    async def manager(self):
+        while True:
+            try:
+                for i in self.feeds:
+                    
+                    manager = i.manager()
+                    data = {
+                        'id': manager['id'],
+                        'initialized_timestamp': manager['initialized_timestamp'],
+                    }
+                    # temporary use of Ticker class
+                    t = Ticker(i.id, 'pair', 0, 0, manager['initialized_timestamp'], raw=data)
+
+                    await i.callback(MANAGER,t, time.time())
+            except Exception as a:
+                print(a)
+                pass
+            await asyncio.sleep(1)

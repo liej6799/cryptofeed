@@ -9,6 +9,7 @@ from decimal import Decimal
 import logging
 from datetime import datetime as dt, timezone
 from typing import AsyncGenerator, Dict, List, Optional, Tuple, Union
+import time
 
 from cryptofeed.defines import CANDLES, FUNDING, L2_BOOK, L3_BOOK, OPEN_INTEREST, POSITIONS, TICKER, TRADES, TRANSACTIONS, BALANCES, ORDER_INFO, FILLS
 from cryptofeed.symbols import Symbol, Symbols
@@ -31,6 +32,7 @@ class Exchange:
     candle_interval_map = NotImplemented
     http_sync = HTTPSync()
     allow_empty_subscriptions = False
+    initialized_timestamp = time.time()
 
     def __init__(self, config=None, sandbox=False, subaccount=None, **kwargs):
         self.config = Config(config=config)
@@ -74,6 +76,16 @@ class Exchange:
         }
         return data
 
+    @classmethod
+    def manager(cls) -> Dict:
+        """
+        Return current state of the exchange.
+        """
+        data = {}
+        data['initialized_timestamp'] = cls.initialized_timestamp
+        data['id'] = cls.id
+        return data
+    
     @classmethod
     def symbols(cls, refresh=False) -> list:
         return list(cls.symbol_mapping(refresh=refresh).keys())
