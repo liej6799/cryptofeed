@@ -87,21 +87,25 @@ class Exchange:
         return ep.route('instruments')
 
     @classmethod
+    def _get_symbol_data(cls):
+        data = []
+        for ep in cls.rest_endpoints:
+            addr = cls._symbol_endpoint_prepare(ep)
+            if isinstance(addr, list):
+                for ep in addr:
+                    LOG.debug("%s: reading symbol information from %s", cls.id, ep)
+                    data.append(cls.http_sync.read(ep, json=True, uuid=cls.id))
+            else:
+                LOG.debug("%s: reading symbol information from %s", cls.id, addr)
+                data.append(cls.http_sync.read(addr, json=True, uuid=cls.id))
+        return data
+    
+    @classmethod
     def symbol_mapping(cls, refresh=False) -> Dict:
         if Symbols.populated(cls.id) and not refresh:
             return Symbols.get(cls.id)[0]
         try:
-            data = []
-            for ep in cls.rest_endpoints:
-                addr = cls._symbol_endpoint_prepare(ep)
-                if isinstance(addr, list):
-                    for ep in addr:
-                        LOG.debug("%s: reading symbol information from %s", cls.id, ep)
-                        data.append(cls.http_sync.read(ep, json=True, uuid=cls.id))
-                else:
-                    LOG.debug("%s: reading symbol information from %s", cls.id, addr)
-                    data.append(cls.http_sync.read(addr, json=True, uuid=cls.id))
-
+            data = cls._get_symbol_data()
             syms, info = cls._parse_symbol_data(data if len(data) > 1 else data[0])
             Symbols.set(cls.id, syms, info)
             return syms

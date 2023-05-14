@@ -50,7 +50,7 @@ PHEMEX = 'PHEMEX'
 POLONIEX = 'POLONIEX'
 PROBIT = 'PROBIT'
 UPBIT = 'UPBIT'
-
+PYTH = 'PYTH'
 
 # Market Data
 L1_BOOK = 'l1_book'
