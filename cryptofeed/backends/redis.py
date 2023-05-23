@@ -77,6 +77,26 @@ class RedisStreamCallback(RedisCallback):
         await conn.close()
         await conn.connection_pool.disconnect()
 
+class RedisSubscribeStream(RedisCallback):
+
+    async def writer(self):
+
+        conn = aioredis.from_url(self.redis)
+        psub = conn.pubsub()
+
+        async def reader(channel: aioredis.client.PubSub):
+
+            while True:
+                message = await channel.get_message(ignore_subscribe_messages=True)
+                if message is not None:
+                    await self.write(message)
+
+        async with psub as p:
+            await p.subscribe(self.key)
+            await reader(p)  # wait for reader to complete
+            await p.unsubscribe(self.key)
+
+        await psub.close()
 
 class RedisKeyCallback(RedisCallback):
 
@@ -205,5 +225,5 @@ class FillsStream(RedisStreamCallback, BackendCallback):
 class ManagerRedis(RedisZSetCallback, BackendCallback):
     default_key = 'manager'
 
-class ManagerStream(RedisStreamCallback, BackendCallback):
+class ManagerStream(RedisSubscribeStream, BackendCallback):
     default_key = 'manager'

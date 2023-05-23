@@ -7,7 +7,7 @@ associated with this software.
 from decimal import Decimal
 
 from cryptofeed import FeedHandler
-from cryptofeed.defines import CANDLES, BID, ASK, PYTH, BLOCKCHAIN, FUNDING, GEMINI, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, PERPETUAL, TICKER, TRADES, INDEX
+from cryptofeed.defines import CANDLES,MANAGER,  BID, ASK, PYTH, BLOCKCHAIN, FUNDING, GEMINI, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, PERPETUAL, TICKER, TRADES, INDEX, MANAGER_STREAM
 from cryptofeed.exchanges import (Binance, BinanceUS, BinanceFutures, Bitfinex, Bitflyer, AscendEX, Bitmex, Bitstamp, Bittrex, Coinbase, Gateio,
                                   HitBTC, Huobi, HuobiDM, HuobiSwap, Kraken, OKCoin, OKX, Poloniex, Bybit, KuCoin, Bequant, Upbit, Probit)
 from cryptofeed.exchanges.bitdotcom import BitDotCom
@@ -24,6 +24,7 @@ from cryptofeed.exchanges.phemex import Phemex
 from cryptofeed.exchanges.dydx import dYdX
 from cryptofeed.exchanges.deribit import Deribit
 from cryptofeed.exchanges.pyth import Pyth
+from cryptofeed.backends.redis import TickerRedis, ManagerRedis, ManagerStream
 
 
 # Examples of some handlers for different updates. These currently don't do much.
@@ -125,7 +126,7 @@ def main():
     f.add_feed(Bitget(checksum_validation=True, config='config.yaml', symbols=['BTC-USDT', 'BTC-USDT-PERP', 'BTC-USD-PERP'], channels=[L2_BOOK, TRADES, TICKER, CANDLES], callbacks={CANDLES: candle_callback, TRADES: trade, L2_BOOK: book, TICKER: ticker}))
     f.add_feed(IndependentReserve(symbols=['BTC-USD'], channels=[L3_BOOK, TRADES], callbacks={TRADES: trade, L3_BOOK: book}))
 
-    f.add_feed(Pyth(symbols=['BTC-USD'], channels=[TICKER], callbacks={TICKER: ticker}))
+    f.add_feed(Pyth(symbols=['BTC-USD'], channels=[TICKER], callbacks={MANAGER: ManagerRedis()}))
 
     f.run()
 

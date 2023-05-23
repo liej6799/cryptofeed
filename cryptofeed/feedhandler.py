@@ -12,6 +12,7 @@ from signal import SIGABRT, SIGINT, SIGTERM
 import sys
 import time
 from typing import List
+from cryptofeed.backends.redis import ManagerStream
 
 try:
     # unix / macos only
@@ -139,7 +140,7 @@ class FeedHandler:
         if install_signal_handlers:
             setup_signal_handlers(loop)
 
-        loop.create_task(self.manager())
+        self.setup_manager_handlers(loop)
    
 
         for feed in self.feeds:
@@ -221,7 +222,17 @@ class FeedHandler:
         LOG.info('FH: close the AsyncIO loop')
         loop.close()
 
-    async def manager(self):
+    async def redisHandler(self, loop):
+        stream = ManagerStream()
+        stream.start(loop)
+
+        while stream.running:
+            async with stream.read_queue() as updates:
+                update = list(updates)[-1]
+                if update:
+                    print('update', update)
+
+    async def managerHandler(self):
         while True:
             try:
                 for i in self.feeds:
@@ -235,7 +246,13 @@ class FeedHandler:
                     t = Ticker(i.id, 'pair', 0, 0, manager['initialized_timestamp'], raw=data)
 
                     await i.callback(MANAGER,t, time.time())
-            except Exception as a:
-                print(a)
+            except Exception:
+                
                 pass
             await asyncio.sleep(1)
+
+    def setup_manager_handlers(self, loop):
+        loop.create_task(self.managerHandler())
+
+        
+        loop.create_task(self.redisHandler(loop))

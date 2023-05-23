@@ -65,6 +65,7 @@ INDEX = 'index'
 UNSUPPORTED = 'unsupported'
 CANDLES = 'candles'
 MANAGER = 'manager'
+MANAGER_STREAM = 'manager_stream'
 
 # Account Data / Authenticated Channels
 ORDER_INFO = 'order_info'
