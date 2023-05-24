@@ -222,7 +222,7 @@ class FeedHandler:
         LOG.info('FH: close the AsyncIO loop')
         loop.close()
 
-    async def redisHandler(self, loop):
+    async def redis_handler(self, loop):
         stream = ManagerStream()
         stream.start(loop)
 
@@ -230,9 +230,15 @@ class FeedHandler:
             async with stream.read_queue() as updates:
                 update = list(updates)[-1]
                 if update:
-                    print('update', update)
+                    decoded = update['data'].decode('UTF-8')
+                    for i in self.feeds:
+                        for j in i.normalized_symbol_mapping.items():
+                            print(j[0])
+                            print(j[1])
 
-    async def managerHandler(self):
+
+
+    async def manager_handler(self):
         while True:
             try:
                 for i in self.feeds:
@@ -252,7 +258,6 @@ class FeedHandler:
             await asyncio.sleep(1)
 
     def setup_manager_handlers(self, loop):
-        loop.create_task(self.managerHandler())
+        loop.create_task(self.manager_handler())
 
-        
-        loop.create_task(self.redisHandler(loop))
+        loop.create_task(self.redis_handler(loop))
