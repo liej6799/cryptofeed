@@ -22,10 +22,7 @@ class HTTPCallback(BackendQueue):
 
     async def http_write(self, data, headers=None):
         if not self.session or self.session.closed:
-            self.session = aiohttp.ClientSession()
-
+            self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
+   
         async with self.session.post(self.addr, data=data, headers=headers) as resp:
-            if resp.status >= 400:
-                error = await resp.text()
-                LOG.error("POST to %s failed: %d - %s", self.addr, resp.status, error)
-            resp.raise_for_status()
+            pass

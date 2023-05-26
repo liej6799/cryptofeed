@@ -136,7 +136,8 @@ GET = 'GET'
 DELETE = 'DELETE'
 POST = 'POST'
 
-
+# REDIS topics
+RTTREFRESHSYMBOLS = 'rtt-refresh-symbols'
 """
 L2 Orderbook Layout
     * BID and ASK are SortedDictionaries

@@ -13,7 +13,7 @@ import sys
 import time
 from typing import List
 from cryptofeed.backends.redis import ManagerStream
-
+from cryptofeed.defines import RTTREFRESHSYMBOLS
 try:
     # unix / macos only
     from signal import SIGHUP
@@ -29,7 +29,7 @@ from cryptofeed.feed import Feed
 from cryptofeed.log import get_logger
 from cryptofeed.nbbo import NBBO
 from cryptofeed.exchanges import EXCHANGE_MAP
-from cryptofeed.types import Ticker
+from cryptofeed.types import Ticker, RefreshSymbols
 LOG = logging.getLogger('feedhandler')
 
 
@@ -226,16 +226,36 @@ class FeedHandler:
         stream = ManagerStream()
         stream.start(loop)
 
-        while stream.running:
-            async with stream.read_queue() as updates:
-                update = list(updates)[-1]
-                if update:
-                    decoded = update['data'].decode('UTF-8')
-                    for i in self.feeds:
-                        for j in i.normalized_symbol_mapping.items():
-                            print(j[0])
-                            print(j[1])
+        for i in self.feeds:
+            data ={
+                'id': i.id,
+            }
+            
+            for j in i.symbols():   
+            
+                base, quote = j.split('-')
+                t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
+     
+                await i.callback(RTTREFRESHSYMBOLS,t, time.time())
+    
+        # while stream.running:
+        #     async with stream.read_queue() as updates:
+        #         update = list(updates)[-1]
+        #         if update:
+        #             decoded = update['data'].decode('UTF-8')
+        #             if decoded == RTTREFRESHSYMBOLS:
+                    
+        #                 for i in self.feeds:
+        #                     data ={
+        #                         'id': i.id,
+        #                     }
+                           
+        #                     for j in i.normalized_symbol_mapping.items():
+        #                         print(j[0])
+                              
+        #                         t = RefreshSymbols(i.id, 'base', 'quote', time.time(), raw=data)
 
+        #                         await i.callback(RTTREFRESHSYMBOLS,t, time.time())
 
 
     async def manager_handler(self):
