@@ -222,41 +222,27 @@ class FeedHandler:
         LOG.info('FH: close the AsyncIO loop')
         loop.close()
 
+    def Convert_dict(self, a):  
+        init = iter(a)  
+        res_dct = dict(zip(init, init))  
+        return res_dct  
     async def redis_handler(self, loop):
         stream = ManagerStream()
         stream.start(loop)
-
-        for i in self.feeds:
-            data ={
-                'id': i.id,
-            }
-            
-            for j in i.symbols():   
-            
-                base, quote = j.split('-')
-                t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
-     
-                await i.callback(RTTREFRESHSYMBOLS,t, time.time())
-    
-        # while stream.running:
-        #     async with stream.read_queue() as updates:
-        #         update = list(updates)[-1]
-        #         if update:
-        #             decoded = update['data'].decode('UTF-8')
-        #             if decoded == RTTREFRESHSYMBOLS:
-                    
-        #                 for i in self.feeds:
-        #                     data ={
-        #                         'id': i.id,
-        #                     }
-                           
-        #                     for j in i.normalized_symbol_mapping.items():
-        #                         print(j[0])
-                              
-        #                         t = RefreshSymbols(i.id, 'base', 'quote', time.time(), raw=data)
-
-        #                         await i.callback(RTTREFRESHSYMBOLS,t, time.time())
-
+              
+        while stream.running:
+            async with stream.read_queue() as updates:
+                update = list(updates)[-1]
+                if update:
+                  
+                    decoded = update['data'].decode('UTF-8')
+                    if decoded == RTTREFRESHSYMBOLS:
+                       
+                        for i in self.feeds:
+                            for j in i.symbols(): 
+                                base, quote = j.split('-')
+                                t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
+                                await i.callback(RTTREFRESHSYMBOLS,t, time.time())
 
     async def manager_handler(self):
         while True:
@@ -273,11 +259,9 @@ class FeedHandler:
 
                     await i.callback(MANAGER,t, time.time())
             except Exception:
-                
                 pass
             await asyncio.sleep(1)
 
     def setup_manager_handlers(self, loop):
         loop.create_task(self.manager_handler())
-
         loop.create_task(self.redis_handler(loop))

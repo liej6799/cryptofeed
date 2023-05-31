@@ -13,7 +13,7 @@ from cryptofeed.backends.backend import BackendBookCallback, BackendCallback, Ba
 
 
 class RedisCallback(BackendQueue):
-    def __init__(self, host='127.0.0.1', port=6379, socket=None, key=None, none_to='None', numeric_type=float, **kwargs):
+    def __init__(self, host='192.168.191.213', port=6379, socket=None, key=None, none_to='None', numeric_type=float, **kwargs):
         """
         setting key lets you override the prefix on the
         key used in redis. The defaults are related to the data
@@ -32,7 +32,7 @@ class RedisCallback(BackendQueue):
 
 
 class RedisZSetCallback(RedisCallback):
-    def __init__(self, host='127.0.0.1', port=6379, socket=None, key=None, numeric_type=float, score_key='timestamp', **kwargs):
+    def __init__(self, host='192.168.191.213', port=6379, socket=None, key=None, numeric_type=float, score_key='timestamp', **kwargs):
         """
         score_key: str
             the value at this key will be used to store the data in the ZSet in redis. The
