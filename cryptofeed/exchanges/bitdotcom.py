@@ -301,7 +301,9 @@ class BitDotCom(Feed):
             }
         }
         '''
+
         if data['data']['best_bid'] and data['data']['best_ask']:
+            print(self.exchange_symbol_to_std_symbol(data['data'].get('instrument_id') or data['data'].get('pair')))
             t = Ticker(
                 self.id,
                 self.exchange_symbol_to_std_symbol(data['data'].get('instrument_id') or data['data'].get('pair')),

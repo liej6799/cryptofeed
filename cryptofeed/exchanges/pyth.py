@@ -127,6 +127,7 @@ class Pyth(Feed):
 
     async def message_handler(cls, msg: str, conn: AsyncConnection, timestamp: float):
         msg = json.loads(msg, parse_float=Decimal)
+        print(msg['symbol'])
        
         if 'aggregate_price_info' in msg:
             await cls._ticker(msg, timestamp)
@@ -156,6 +157,9 @@ class Pyth(Feed):
             await ws.subscribe(account)
 
         while True:
+            print(conn.is_open)
+            if not conn.is_open:
+                break;
             update_task = asyncio.create_task(ws.next_update())
             while True:
                 done, _ = await asyncio.wait({update_task}, timeout=1)

@@ -9,11 +9,17 @@ from cryptofeed.connection import Connection
 import logging
 import signal
 from signal import SIGABRT, SIGINT, SIGTERM
+from cryptofeed.defines import CANDLES,MANAGER,  BID, ASK, PYTH, BLOCKCHAIN, FUNDING, GEMINI, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, PERPETUAL, TICKER, TRADES, INDEX, MANAGER_STREAM, RTTREFRESHSYMBOLS
+
 import sys
 import time
 from typing import List
 from cryptofeed.backends.redis import ManagerStream
 from cryptofeed.defines import RTTREFRESHSYMBOLS
+
+from cryptofeed.exchanges.bitdotcom import BitDotCom
+from cryptofeed.exchanges.pyth import Pyth
+
 try:
     # unix / macos only
     from signal import SIGHUP
@@ -98,12 +104,11 @@ class FeedHandler:
             self.feeds.append((feed))
         if self.raw_data_collection:
             self.raw_data_collection.write_header(self.feeds[-1].id, json.dumps(self.feeds[-1]._feed_config))
+  
+        if loop is None:
+            loop = asyncio.get_event_loop()
 
-        if self.running:
-            if loop is None:
-                loop = asyncio.get_event_loop()
-
-            self.feeds[-1].start(loop)
+        self.feeds[-1].start(loop)
 
     def add_nbbo(self, feeds: List[Feed], symbols: List[str], callback, config=None):
         """
@@ -229,21 +234,37 @@ class FeedHandler:
     async def redis_handler(self, loop):
         stream = ManagerStream()
         stream.start(loop)
-              
+        print('redis_handler')
+        
+        self.add_feed(Pyth(channels=[TICKER], symbols=['ETH-USD']))
+      
+        await self.stop_async(loop)
+        
+        self.add_feed(Pyth(channels=[TICKER], symbols=['BTC-USD']))
+
+ 
+        #self.run()
         while stream.running:
             async with stream.read_queue() as updates:
                 update = list(updates)[-1]
+                
                 if update:
                   
                     decoded = update['data'].decode('UTF-8')
                     if decoded == RTTREFRESHSYMBOLS:
+                        #self.feeds.append(Pyth(symbols=['BTC-USD'], channels=[TICKER]))
+                        await self.stop_async(loop)
+                        print(len(self.feeds))
+                   
+                        self.add_feed(Pyth(channels=[TICKER], symbols=['ETH-USD']))
                        
-                        for i in self.feeds:
-                            for j in i.symbols(): 
-                                base, quote = j.split('-')
-                                t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
-                                await i.callback(RTTREFRESHSYMBOLS,t, time.time())
-
+ 
+                        # for i in self.feeds:
+                        #     for j in i.symbols(): 
+                        #         base, quote = j.split('-')
+                        #         t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
+                        #         await i.callback(RTTREFRESHSYMBOLS,t, time.time())
+   
     async def manager_handler(self):
         while True:
             try:
