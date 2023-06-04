@@ -44,7 +44,12 @@ class HTTPSync(Connection):
             self.raw_data_callback.sync_callback(r.text, time.time(), str(uuid), endpoint=address)
         r.raise_for_status()
         if json:
-            return json_parser.loads(r.text, parse_float=Decimal)
+
+            try:
+                return json_parser.loads(r.text, parse_float=Decimal)
+            except json_parser.JSONDecodeError:
+                return r.text
+            
         if text:
             return r.text
         return r

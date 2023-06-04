@@ -48,6 +48,7 @@ from .poloniex import Poloniex
 from .probit import Probit
 from .upbit import Upbit
 from .pyth import Pyth
+from .alphavantage import AlphaVantage
 
 # Maps string name to class name for use with config
 EXCHANGE_MAP = {
@@ -92,5 +93,6 @@ EXCHANGE_MAP = {
     POLONIEX: Poloniex,
     PROBIT: Probit,
     UPBIT: Upbit,
-    PYTH: Pyth
+    PYTH: Pyth,
+    ALPHAVANTAGE: AlphaVantage
 }

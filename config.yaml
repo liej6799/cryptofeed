@@ -61,3 +61,6 @@ okx:
 poloniex:
     key_id: null
     key_secret: null
+alphavantage:
+    key_id: ALMRVP7KUB3QEPSC
+    key_secret: null

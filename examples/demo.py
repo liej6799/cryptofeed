@@ -24,6 +24,7 @@ from cryptofeed.symbols import Symbol
 from cryptofeed.exchanges.phemex import Phemex
 from cryptofeed.exchanges.dydx import dYdX
 from cryptofeed.exchanges.deribit import Deribit
+from cryptofeed.exchanges.alphavantage import AlphaVantage
 from cryptofeed.exchanges.pyth import Pyth
 from cryptofeed.backends.redis import TickerRedis, ManagerRedis, ManagerStream
 from cryptofeed.backends.appwrite import RTTRefreshSymbolAppwrite
@@ -82,7 +83,8 @@ async def liquidations(liquidation, receipt_timestamp):
 def main():
     config = {'log': {'filename': 'demo.log', 'level': 'DEBUG', 'disabled': False}}
     # the config will be automatically passed into any exchanges set up by string. Instantiated exchange objects would need to pass the config in manually.
-    f = FeedHandler(config=config)
+    #f = FeedHandler(config=config)
+    f = FeedHandler(config='config.yaml')
     # f.add_feed(FMFW(symbols=['BTC-USDT'], channels=[CANDLES, L2_BOOK, TRADES, TICKER], callbacks={CANDLES: candle_callback, TICKER: ticker, L2_BOOK: book, TRADES: trade}))
     # f.add_feed(AscendEX(symbols=['XRP-USDT'], channels=[L2_BOOK, TRADES], callbacks={L2_BOOK: book, TRADES: trade}))
     # f.add_feed(Bequant(symbols=['BTC-USDT'], channels=[L2_BOOK], callbacks={L2_BOOK: book, TRADES: trade, TICKER: ticker, CANDLES: candle_callback}))
@@ -131,11 +133,11 @@ def main():
     APPWRITE_KEY = '548dc4eda5e039d46a7bb3fd8ee0c9bff427403e135a2bad71bde34e350c5b022fc8cdad1892a2f84b628ee31457c764f179e56b963354c933d8a3f4b1fbfda1b9728b9e12a01ef9d44def2d6387cd4a59dce87152d877e4640aff442a04faebe091fd2e2cc9cf3248f274ba51c8cc4d6aef7480c5eac9b4fe593b6349e3e823'
 
 
-    f.add_feed(Pyth(channels=[TICKER], callbacks={MANAGER: ManagerRedis(), 
-                                                                       TICKER: ticker,
-                            RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
-                                                                        project = APPWRITE_PROJ, 
-                                                                        token = APPWRITE_KEY )}))
+    # f.add_feed(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
+    #                                                                     project = APPWRITE_PROJ, 
+    #                                                                     token = APPWRITE_KEY )})
+
+    #f.add_feed(Bitget(symbols=['BTC-USD'], channels=[TICKER], callbacks={TICKER: ticker}))
 
     f.run()
 

@@ -19,6 +19,8 @@ from cryptofeed.defines import RTTREFRESHSYMBOLS
 
 from cryptofeed.exchanges.bitdotcom import BitDotCom
 from cryptofeed.exchanges.pyth import Pyth
+from cryptofeed.exchanges.alphavantage import AlphaVantage
+from cryptofeed.backends.appwrite import RTTRefreshSymbolAppwrite
 
 try:
     # unix / macos only
@@ -107,8 +109,12 @@ class FeedHandler:
   
         if loop is None:
             loop = asyncio.get_event_loop()
+    
+        if self.running:
+            if loop is None:
+                loop = asyncio.get_event_loop()
 
-        self.feeds[-1].start(loop)
+            self.feeds[-1].start(loop)
 
     def add_nbbo(self, feeds: List[Feed], symbols: List[str], callback, config=None):
         """
@@ -236,14 +242,18 @@ class FeedHandler:
         stream.start(loop)
         print('redis_handler')
         
-        self.add_feed(Pyth(channels=[TICKER], symbols=['ETH-USD']))
-      
-        await self.stop_async(loop)
-        
-        self.add_feed(Pyth(channels=[TICKER], symbols=['BTC-USD']))
+        APPWRITE_ADDR = 'https://192.168.191.213:4430'
+        APPWRITE_PROJ = '6469dde52fe9831c4b94'
+        APPWRITE_KEY = '548dc4eda5e039d46a7bb3fd8ee0c9bff427403e135a2bad71bde34e350c5b022fc8cdad1892a2f84b628ee31457c764f179e56b963354c933d8a3f4b1fbfda1b9728b9e12a01ef9d44def2d6387cd4a59dce87152d877e4640aff442a04faebe091fd2e2cc9cf3248f274ba51c8cc4d6aef7480c5eac9b4fe593b6349e3e823'
 
- 
-        #self.run()
+        self.add_feed(AlphaVantage(channels=[TICKER], config=self.config, symbols=['AAPL-USD'], callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
+                                                                        project = APPWRITE_PROJ, 
+                                                                        token = APPWRITE_KEY )}))
+      
+        # await self.stop_async(loop)
+        
+        # self.add_feed(Pyth(channels=[TICKER], symbols=['BTC-USD']))
+        
         while stream.running:
             async with stream.read_queue() as updates:
                 update = list(updates)[-1]
@@ -252,18 +262,15 @@ class FeedHandler:
                   
                     decoded = update['data'].decode('UTF-8')
                     if decoded == RTTREFRESHSYMBOLS:
-                        #self.feeds.append(Pyth(symbols=['BTC-USD'], channels=[TICKER]))
-                        await self.stop_async(loop)
-                        print(len(self.feeds))
-                   
-                        self.add_feed(Pyth(channels=[TICKER], symbols=['ETH-USD']))
                        
- 
-                        # for i in self.feeds:
-                        #     for j in i.symbols(): 
-                        #         base, quote = j.split('-')
-                        #         t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
-                        #         await i.callback(RTTREFRESHSYMBOLS,t, time.time())
+                        
+                        for i in self.feeds:
+                            
+                            for j in i.symbols(): 
+                     
+                                base, quote = j.split('-')
+                                t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
+                                await i.callback(RTTREFRESHSYMBOLS,t, time.time())
    
     async def manager_handler(self):
         while True:
