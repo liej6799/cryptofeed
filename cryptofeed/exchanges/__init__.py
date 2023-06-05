@@ -49,6 +49,7 @@ from .probit import Probit
 from .upbit import Upbit
 from .pyth import Pyth
 from .alphavantage import AlphaVantage
+from .quandl import Quandl
 
 # Maps string name to class name for use with config
 EXCHANGE_MAP = {
@@ -94,5 +95,6 @@ EXCHANGE_MAP = {
     PROBIT: Probit,
     UPBIT: Upbit,
     PYTH: Pyth,
-    ALPHAVANTAGE: AlphaVantage
+    ALPHAVANTAGE: AlphaVantage,
+    QUANDL: Quandl
 }

@@ -21,7 +21,9 @@ from cryptofeed.defines import RTTREFRESHSYMBOLS
 from cryptofeed.exchanges.bitdotcom import BitDotCom
 from cryptofeed.exchanges.pyth import Pyth
 from cryptofeed.exchanges.alphavantage import AlphaVantage
+from cryptofeed.exchanges.quandl import Quandl
 from cryptofeed.backends.appwrite import RTTRefreshSymbolAppwrite
+
 from cryptofeed.backends.postgres import SymbolPostgres
 from cryptofeed.types import Ticker, RefreshSymbols
 
@@ -297,22 +299,23 @@ class Manager(FeedHandler):
 
 
     async def refresh_symbols(self):
-        while True:
-            await asyncio.sleep(5)
-            for i in self.feeds:            
-                for j in i.symbols(): 
-                    base, quote = j.split('-')
-                    t = RefreshSymbols(i.id, j, base, quote, time.time(), raw=j)
-                    await i.callback(RTTREFRESHSYMBOLS,t, time.time())
+
+        for i in self.feeds:            
+            for j in i.symbols(): 
+                
+                base, quote = j.split('-')
+
+                t = RefreshSymbols(i.id, j, base, quote, time.time(), raw=j)
+                await i.callback(RTTREFRESHSYMBOLS,t, time.time())
 
     def setup_manager(self, loop):
   
-        self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD'], channels=[TICKER, DAILY_OHLCV], config=self.config,
-                           callbacks={TICKER: self.ticker, DAILY_OHLCV : self.refresh}))
+        self.add_feed(Quandl(loop=loop, symbols=['AAPL-USD'], channels=[DAILY_OHLCV], config=self.config,
+                           callbacks={TICKER: self.ticker, RTTREFRESHSYMBOLS : SymbolPostgres()}))
         print(self.feeds[-1].daily_ohlcv_sync('AAPL-USD'))
- 
+        # print(self.feeds[-1].daily_ohlcv_sync('TSLA-USD'))
         # once task is created, cant perform run_until_complete, use await instead
-        #loop.create_task(self.restart_feed(loop))
+        loop.create_task(self.refresh_symbols())
 
     # async def consumer(self):
     #     while True:

@@ -22,8 +22,8 @@ from cryptofeed.types import Candle
 LOG = logging.getLogger('feedhandler')
 
 
-class AlphaVantageRestMixin(RestExchange):
-    api = "https://www.alphavantage.co/"
+class QuandlRestMixin(RestExchange):
+    api = "https://data.nasdaq.com/api/v3/datatables/"
     rest_channels = (
         DAILY_OHLCV 
     )
@@ -33,9 +33,9 @@ class AlphaVantageRestMixin(RestExchange):
 
         if auth:
             if query_string:
-                query_string = '{}&apikey={}'.format(query_string, self.key_id)
+                query_string = '{}&api_key={}'.format(query_string, self.key_id)
             else:
-                query_string = 'apikey={}'.format(self.key_id)
+                query_string = 'api_key={}'.format(self.key_id)
 
         if not api:
             api = self.api
@@ -52,5 +52,5 @@ class AlphaVantageRestMixin(RestExchange):
         return json.loads(data, parse_float=Decimal)
 
     async def daily_ohlcv(self, symbol: str = None):
-        await self._request(GET, 'query', auth=True, payload={'function': 'TIME_SERIES_DAILY_ADJUSTED', 'symbol': self.std_symbol_to_exchange_symbol(symbol), 'outputsize': 'full'})
+        await self._request(GET, 'WIKI/PRICES.json', auth=True, payload={'ticker': self.std_symbol_to_exchange_symbol(symbol)})
     

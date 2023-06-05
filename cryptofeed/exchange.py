@@ -27,6 +27,7 @@ class Exchange:
     rest_endpoints = NotImplemented
     _parse_symbol_data = NotImplemented
     websocket_channels = NotImplemented
+    rest_channels = NotImplemented
     request_limit = NotImplemented
     valid_candle_intervals = NotImplemented
     candle_interval_map = NotImplemented
@@ -91,7 +92,7 @@ class Exchange:
         return list(cls.symbol_mapping(refresh=refresh).keys())
 
     @classmethod
-    def _symbol_endpoint_prepare(cls, ep: RestEndpoint) -> Union[List[str], str]:
+    def _symbol_endpoint_prepare(cls, ep: RestEndpoint, key_id = None) -> Union[List[str], str]:
         """
         override if a specific exchange needs to do something first, like query an API
         to get a list of currencies, that are then used to build the list of symbol endpoints
@@ -118,6 +119,7 @@ class Exchange:
             return Symbols.get(cls.id)[0]
         try:
             data = cls._get_symbol_data(key_id)
+  
             syms, info = cls._parse_symbol_data(data if len(data) > 1 else data[0])
             Symbols.set(cls.id, syms, info)
             return syms
@@ -128,13 +130,22 @@ class Exchange:
     @classmethod
     def std_channel_to_exchange(cls, channel: str) -> str:
         try:
-            return {**cls.websocket_channels, **cls.rest_channels}[channel]
+            if cls.rest_channels is not NotImplemented:
+                return {**cls.websocket_channels, **cls.rest_channels}[channel]
+            return cls.websocket_channels[channel]
+        
         except KeyError:
             raise UnsupportedDataFeed(f'{channel} is not supported on {cls.id}')
 
     @classmethod
     def exchange_channel_to_std(cls, channel: str) -> str:
-        for chan, exch in {**cls.websocket_channels, **cls.rest_channels}.items():
+        
+        if cls.rest_channels is not NotImplemented:
+            total_channels = {**cls.websocket_channels, **cls.s}
+        else:
+            total_channels = {**cls.websocket_channels}
+
+        for chan, exch in total_channels.items():
             if exch == channel:
                 return chan
         raise ValueError(f'Unable to normalize channel {cls.id}')
