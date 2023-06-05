@@ -33,7 +33,7 @@ class Pyth(Feed):
     rest_endpoints = [RestEndpoint(PYTHNET_HTTP_ENDPOINT, routes=Routes(['']))]
     key_seperator = ','
     websocket_channels = {
-        TICKER: '',
+        TICKER: 'ticker',
     }
     solana_client = SolanaClient(endpoint=PYTHNET_HTTP_ENDPOINT, ws_endpoint=PYTHNET_WS_ENDPOINT)
         

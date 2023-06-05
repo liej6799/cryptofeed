@@ -135,11 +135,15 @@ def main():
     # f.add_feed(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
     #                                                                     project = APPWRITE_PROJ, 
     #                                                                     token = APPWRITE_KEY )})
+    APPWRITE_ADDR = 'https://192.168.191.213:4430'
+    APPWRITE_PROJ = '6469dde52fe9831c4b94'
+    APPWRITE_KEY = '548dc4eda5e039d46a7bb3fd8ee0c9bff427403e135a2bad71bde34e350c5b022fc8cdad1892a2f84b628ee31457c764f179e56b963354c933d8a3f4b1fbfda1b9728b9e12a01ef9d44def2d6387cd4a59dce87152d877e4640aff442a04faebe091fd2e2cc9cf3248f274ba51c8cc4d6aef7480c5eac9b4fe593b6349e3e823'
 
     #f.add_feed(Bitget(symbols=['BTC-USD'], channels=[TICKER], callbacks={TICKER: ticker}))
-    # f.add_feed(Pyth(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
-    #                                                                     project = APPWRITE_PROJ, 
-    #                                                                     token = APPWRITE_KEY)}))
+    f.add_feed(Pyth(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
+                                                                        project = APPWRITE_PROJ, 
+                                                                        token = APPWRITE_KEY)}))
+
     f.run()
     # f.add_feed(Pyth(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
     #                                                                         project = APPWRITE_PROJ, 

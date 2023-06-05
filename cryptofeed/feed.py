@@ -146,6 +146,30 @@ class Feed(Exchange):
             if not isinstance(callback, list):
                 self.callbacks[key] = [callback]
 
+    def update_symbol(self, symbols, channels):
+        if symbols and channels:
+            if any(self.is_authenticated_channel(chan) for chan in channels):
+                if not self.key_id or not self.key_secret:
+                    raise ValueError("Authenticated channel subscribed to, but no auth keys provided")
+                self.requires_authentication = True
+
+            # if we dont have a subscription dict, we'll use symbols+channels and build one
+            [self._feed_config[channel].extend(symbols) for channel in channels]
+            self.normalized_symbols = symbols
+            self.normalized_channels = channels
+
+            symbols = [self.std_symbol_to_exchange_symbol(symbol) for symbol in symbols]
+            channels = list(set([self.std_channel_to_exchange(chan) for chan in channels]))
+            self.subscription = {chan: symbols for chan in channels}
+
+        if self.callbacks:
+            for cb_type, cb_func in self.callbacks.items():
+                self.callbacks[cb_type] = cb_func
+
+        for key, callback in self.callbacks.items():
+            if not isinstance(callback, list):
+                self.callbacks[key] = [callback]
+
     def _connect_rest(self):
         """
         Child classes should override this method to generate connection objects that

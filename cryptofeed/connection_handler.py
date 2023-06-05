@@ -65,6 +65,7 @@ class ConnectionHandler:
                     delay = 1
                     if self.timeout != -1:
                         loop = asyncio.get_running_loop()
+                        
                         loop.create_task(self._watcher())
                     await self._handler(connection, self.handler)
             except (ConnectionClosed, ConnectionAbortedError, ConnectionResetError, socket_error) as e:

@@ -64,3 +64,8 @@ poloniex:
 alphavantage:
     key_id: ALMRVP7KUB3QEPSC
     key_secret: null
+appwrite:
+    appwrite_addr: https://192.168.191.213:4430
+    appwrite_proj: 6469dde52fe9831c4b94
+    appwrite_key: 548dc4eda5e039d46a7bb3fd8ee0c9bff427403e135a2bad71bde34e350c5b022fc8cdad1892a2f84b628ee31457c764f179e56b963354c933d8a3f4b1fbfda1b9728b9e12a01ef9d44def2d6387cd4a59dce87152d877e4640aff442a04faebe091fd2e2cc9cf3248f274ba51c8cc4d6aef7480c5eac9b4fe593b6349e3e823
+

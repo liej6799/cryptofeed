@@ -5,6 +5,7 @@ Please see the LICENSE file for the terms and conditions
 associated with this software.
 '''
 import asyncio
+
 from cryptofeed.connection import Connection
 import logging
 import signal
@@ -22,6 +23,8 @@ from cryptofeed.exchanges.pyth import Pyth
 from cryptofeed.exchanges.alphavantage import AlphaVantage
 from cryptofeed.backends.appwrite import RTTRefreshSymbolAppwrite
 from cryptofeed.backends.postgres import SymbolPostgres
+from cryptofeed.types import Ticker, RefreshSymbols
+
 try:
     # unix / macos only
     from signal import SIGHUP
@@ -37,7 +40,7 @@ from cryptofeed.feed import Feed
 from cryptofeed.log import get_logger
 from cryptofeed.nbbo import NBBO
 from cryptofeed.exchanges import EXCHANGE_MAP
-from cryptofeed.types import Ticker, RefreshSymbols
+
 LOG = logging.getLogger('feedhandler')
 
 
@@ -79,13 +82,13 @@ class FeedHandler:
         if self.config.log_msg:
             LOG.info(self.config.log_msg)
 
-        if self.config.uvloop:
-            try:
-                import uvloop
-                asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-                LOG.info('FH: uvloop initalized')
-            except ImportError:
-                LOG.info("FH: uvloop not initialized")
+        # if self.config.uvloop:
+        #     try:
+        #         import uvloop
+        #         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        #         LOG.info('FH: uvloop initalized')
+        #     except ImportError:
+        #         LOG.info("FH: uvloop not initialized")
 
     def add_feed(self, feed, loop=None, **kwargs):
         """
@@ -131,7 +134,7 @@ class FeedHandler:
         for feed in feeds:
             self.add_feed(feed(channels=[L2_BOOK], symbols=symbols, callbacks={L2_BOOK: cb}, config=config))
 
-    def run(self, start_loop: bool = True, install_signal_handlers: bool = True, exception_handler=None):
+    def run(self, start_loop: bool = True, install_signal_handlers: bool = True, install_manager: bool = True, exception_handler=None):
         """
         start_loop: bool, default True
             if false, will not start the event loop.
@@ -140,19 +143,24 @@ class FeedHandler:
             can only be done from the main thread's loop, so if running cryptofeed on
             a child thread, this must be set to false, and setup_signal_handlers must
             be called from the main/parent thread's event loop
+        install_manager: bool, default True
+            if True, will install manager handlers on the event loop. This 
+            will allow access control over the feeds and performs task
+            such as start / stop based on the manager requests
         exception_handler: asyncio exception handler function pointer
             a custom exception handler for asyncio
         """
+
         self.running = True
         loop = asyncio.get_event_loop()
         # Good to enable when debugging or without code change: export PYTHONASYNCIODEBUG=1)
-        # loop.set_debug(True)
+        #loop.set_debug(True)
 
         if install_signal_handlers:
             setup_signal_handlers(loop)
+        if install_manager:
+            self.setup_manager(loop)
 
-        self.setup_manager_handlers(loop)
-   
 
         for feed in self.feeds:
             feed.start(loop)
@@ -209,6 +217,22 @@ class FeedHandler:
         shutdown_tasks = self._stop(loop=loop)
         loop.run_until_complete(asyncio.gather(*shutdown_tasks))
 
+    def _start(self, loop=None):
+        self.running = True
+        if not loop:
+            loop = asyncio.get_event_loop()
+
+        LOG.info('FH: start connections handlers in feeds')
+        for feed in self.feeds:
+            feed.start(loop)
+
+        if self.raw_data_collection:
+            LOG.info('FH: start raw data collection')
+            self.raw_data_collection.start()
+
+    def start(self, loop=None):
+        self._start(loop=loop)
+
     def close(self, loop=None):
         """Stop the asynchronous generators and close the event loop."""
         if not loop:
@@ -233,71 +257,129 @@ class FeedHandler:
         LOG.info('FH: close the AsyncIO loop')
         loop.close()
 
-    def Convert_dict(self, a):  
-        init = iter(a)  
-        res_dct = dict(zip(init, init))  
-        return res_dct  
-    async def redis_handler(self, loop):
-        stream = ManagerStream()
-        stream.start(loop)
-        print('redis_handler')
-        
-        APPWRITE_ADDR = 'https://192.168.191.213:4430'
-        APPWRITE_PROJ = '6469dde52fe9831c4b94'
-        APPWRITE_KEY = '548dc4eda5e039d46a7bb3fd8ee0c9bff427403e135a2bad71bde34e350c5b022fc8cdad1892a2f84b628ee31457c764f179e56b963354c933d8a3f4b1fbfda1b9728b9e12a01ef9d44def2d6387cd4a59dce87152d877e4640aff442a04faebe091fd2e2cc9cf3248f274ba51c8cc4d6aef7480c5eac9b4fe593b6349e3e823'
+    def get_feeds(self):
+        return self.feeds
 
-        self.add_feed(Pyth(channels=[TICKER], config=self.config, symbols=['AAPL-USD'],  callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
-                                                                        project = APPWRITE_PROJ, 
-                                                                        token = APPWRITE_KEY)}), loop=loop)
+class Manager(FeedHandler):
+
+    def __init__(self,  **kwargs):
+        super().__init__(**kwargs)
+
+    async def ticker(self, a, b):
+        print(a, b)
+        
+    async def refresh(self,a,b):
+        print(a,b)
+    async def stop_feed(self, loop):
+        await self.stop_async(loop)
+
+    def start_feed(self, loop):
+        self.start(loop)
+
+    # def add_feed(self):
+
+    #     self.feeds = []
+    #     self.add_feed(Pyth(symbols=['ETH-USD'], channels=[TICKER],
+    #                 callbacks={TICKER: self.ticker, RTTREFRESHSYMBOLS : self.refresh}))
+
+    async def restart_feed(self, loop):
+        # {'ticker': ['BTC/USD,GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU']}
+        await asyncio.sleep(10)
+        
+        await self.stop_feed(loop)
+        for i in self.feeds:
+            i.update_symbol( symbols=['ETH-USD', 'BTC-USD'], channels=[TICKER])
+        self.start_feed(loop)
+
+        #await self.stop_feed(loop)
+        # need to wait for all the feeds to stop
+
+        # self.start_feed(loop)
+
+
+
+    async def refresh_symbols(self):
+        while True:
+            await asyncio.sleep(5)
+            for i in self.feeds:            
+                for j in i.symbols(): 
+                    base, quote = j.split('-')
+                    t = RefreshSymbols(i.id, j, base, quote, time.time(), raw=j)
+                    await i.callback(RTTREFRESHSYMBOLS,t, time.time())
+
+    def setup_manager(self, loop):
+  
+        self.add_feed(Pyth(loop=loop, symbols=['BTC-USD'], channels=[TICKER],
+                           callbacks={TICKER: self.ticker, RTTREFRESHSYMBOLS : self.refresh}))
+
+
+        loop.create_task(self.restart_feed(loop))
+
+    # async def consumer(self):
+    #     while True:
+    #         print('consumer')
+    #         await asyncio.sleep(1)    
+
+        
+ 
+    
+    # async def redis_handler(self, loop):
+    #     stream = ManagerStream()
+    #     stream.start(loop)
+    #     print('redis_handler')
+    
+        # self.add_feed(Pyth(channels=[TICKER], config=self.config, symbols=['AAPL-USD'],  callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
+        #                                                                 project = APPWRITE_PROJ, 
+        #                                                                 token = APPWRITE_KEY)}), loop=loop)
 
         #self.add_feed(Pyth(channels=[TICKER], config=self.config, symbols=['AAPL-USD'],  callbacks={RTTREFRESHSYMBOLS: SymbolPostgres()}))
                       
-        for i in self.feeds:            
-            for j in i.symbols(): 
+        # for i in self.feeds:            
+        #     for j in i.symbols(): 
         
-                base, quote = j.split('-')
-                t = RefreshSymbols(i.id, j, base, quote, time.time(), raw=j)
-                await i.callback(RTTREFRESHSYMBOLS,t, time.time())
+        #         base, quote = j.split('-')
+        #         t = RefreshSymbols(i.id, j, base, quote, time.time(), raw=j)
+        #         await i.callback(RTTREFRESHSYMBOLS,t, time.time())
                 
         # await self.stop_async(loop)
         
         # self.add_feed(Pyth(channels=[TICKER], symbols=['BTC-USD']))
         
-        while stream.running:
-            async with stream.read_queue() as updates:
-                update = list(updates)[-1]
+        # while stream.running:
+        #     async with stream.read_queue() as updates:
+        #         update = list(updates)[-1]
                 
-                if update:
+        #         if update:
                   
-                    decoded = update['data'].decode('UTF-8')
-                    if decoded == RTTREFRESHSYMBOLS:
+        #             decoded = update['data'].decode('UTF-8')
+        #             if decoded == RTTREFRESHSYMBOLS:
                                 
-                        for i in self.feeds:                            
-                            for j in i.symbols():                      
-                                base, quote = j.split('-')
-                                t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
-                                await i.callback(RTTREFRESHSYMBOLS,t, time.time())
-                            break
+        #                 for i in self.feeds:                            
+        #                     for j in i.symbols():                      
+        #                         base, quote = j.split('-')
+        #                         t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
+        #                         await i.callback(RTTREFRESHSYMBOLS,t, time.time())
+        #                     break
                                 
 
-    async def manager_handler(self):
-        while True:
-            try:
-                for i in self.feeds:
+    # async def manager_handler(self):
+    #     while True:
+    #         try:
+    #             for i in self.feeds:
                     
-                    manager = i.manager()
-                    data = {
-                        'id': manager['id'],
-                        'initialized_timestamp': manager['initialized_timestamp'],
-                    }
-                    # temporary use of Ticker class
-                    t = Ticker(i.id, 'pair', 0, 0, manager['initialized_timestamp'], raw=data)
+    #                 manager = i.manager()
+    #                 data = {
+    #                     'id': manager['id'],
+    #                     'initialized_timestamp': manager['initialized_timestamp'],
+    #                 }
+    #                 # temporary use of Ticker class
+    #                 t = Ticker(i.id, 'pair', 0, 0, manager['initialized_timestamp'], raw=data)
 
-                    await i.callback(MANAGER,t, time.time())
-            except Exception:
-                pass
-            await asyncio.sleep(1)
+    #                 await i.callback(MANAGER,t, time.time())
+    #         except Exception:
+    #             pass
+    #         await asyncio.sleep(1)
 
-    def setup_manager_handlers(self, loop):
-        loop.create_task(self.manager_handler())
-        loop.create_task(self.redis_handler(loop))
+    # def setup_manager_handlers(self, loop):
+    #     loop.create_task(self.manager_handler())
+    #     loop.create_task(self.redis_handler(loop))
