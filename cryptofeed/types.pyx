@@ -798,18 +798,19 @@ cdef class Position:
 
 cdef class RefreshSymbols:
     cdef readonly str exchange
+    cdef readonly str symbol
     cdef readonly str base_symbol
     cdef readonly str quote_symbol
     cdef readonly object timestamp
     cdef readonly object raw
 
-    def __init__(self, exchange, base_symbol, quote_symbol, timestamp, raw=None):
+    def __init__(self, exchange, symbol, base_symbol, quote_symbol, timestamp, raw=None):
         assert timestamp is None or isinstance(timestamp, float)
 
         self.exchange = exchange
+        self.symbol = symbol
         self.base_symbol = base_symbol
         self.quote_symbol = quote_symbol
-
         self.timestamp = timestamp
         self.raw = raw
 
@@ -817,6 +818,7 @@ cdef class RefreshSymbols:
     def from_dict(data: dict) -> RefreshSymbols:
         return RefreshSymbols(
             data['exchange'],
+            data['symbol'],
             data['base_symbol'],
             data['quote_symbol'],
             data['timestamp']
@@ -824,17 +826,17 @@ cdef class RefreshSymbols:
 
     cpdef dict to_dict(self, numeric_type=None, none_to=False):
         if numeric_type is None:
-            data = {'exchange': self.exchange, 'base_symbol': self.base_symbol, 'quote_symbol': self.quote_symbol, 'timestamp': self.timestamp}
+            data = {'exchange': self.exchange, 'symbol': self.symbol, 'base_symbol': self.base_symbol, 'quote_symbol': self.quote_symbol, 'timestamp': self.timestamp}
         else:
-            data = {'exchange': self.exchange, 'base_symbol': self.base_symbol, 'quote_symbol': self.quote_symbol, 'timestamp': self.timestamp}
+            data = {'exchange': self.exchange, 'symbol': self.symbol, 'base_symbol': self.base_symbol, 'quote_symbol': self.quote_symbol, 'timestamp': self.timestamp}
 
         return data if not none_to else convert_none_values(data, none_to)
 
     def __repr__(self):
-        return f"exchange: {self.exchange} base_symbol: {self.base_symbol} quote_symbol: {self.quote_symbol} timestamp: {self.timestamp}"
+        return f"exchange: {self.exchange} symbol: {self.symbol} base_symbol: {self.base_symbol} quote_symbol: {self.quote_symbol} timestamp: {self.timestamp}"
 
     def __eq__(self, cmp):
-        return self.exchange == cmp.exchange and self.base_symbol == cmp.base_symbol and self.quote_symbol == cmp.quote_symbol and self.timestamp == cmp.timestamp
+        return self.exchange == cmp.exchange and self.symbol == cmp.symbol and self.base_symbol == cmp.base_symbol and self.quote_symbol == cmp.quote_symbol and self.timestamp == cmp.timestamp
 
     def __hash__(self):
         return hash(self.__repr__())

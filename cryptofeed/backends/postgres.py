@@ -12,11 +12,11 @@ import asyncpg
 from yapic import json
 
 from cryptofeed.backends.backend import BackendBookCallback, BackendCallback, BackendQueue
-from cryptofeed.defines import CANDLES, FUNDING, OPEN_INTEREST, TICKER, TRADES, LIQUIDATIONS, INDEX
+from cryptofeed.defines import CANDLES, FUNDING, OPEN_INTEREST, TICKER, TRADES, LIQUIDATIONS, INDEX, SYMBOL
 
 
 class PostgresCallback(BackendQueue):
-    def __init__(self, host='127.0.0.1', user=None, pw=None, db=None, port=None, table=None, custom_columns: dict = None, none_to=None, numeric_type=float, **kwargs):
+    def __init__(self, host='192.168.191.213', user='postgres', pw='password', db='rtt-db', port=5432, table=None, custom_columns: dict = None, none_to=None, numeric_type=float, **kwargs):
         """
         host: str
             Database host address
@@ -91,17 +91,18 @@ class PostgresCallback(BackendQueue):
                     await self.write_batch(batch)
 
     async def write_batch(self, updates: list):
+
         await self._connect()
         args_str = ','.join([self.format(u) for u in updates])
-
         async with self.conn.transaction():
             try:
                 if self.custom_columns:
                     await self.conn.execute(self.insert_statement + args_str)
                 else:
-                    await self.conn.execute(f"INSERT INTO {self.table} VALUES {args_str}")
+                    await self.conn.execute(f"INSERT INTO {self.table} VALUES {args_str} ON CONFLICT DO NOTHING")
 
-            except asyncpg.UniqueViolationError:
+            except Exception as a:
+                print(a)
                 # when restarting a subscription, some exchanges will re-publish a few messages
                 pass
 
@@ -221,3 +222,13 @@ class CandlesPostgres(PostgresCallback, BackendCallback):
             open_ts = dt.utcfromtimestamp(data['start'])
             close_ts = dt.utcfromtimestamp(data['stop'])
             return f"(DEFAULT,'{timestamp}','{receipt}','{exchange}','{symbol}','{open_ts}','{close_ts}','{data['interval']}',{data['trades'] if data['trades'] is not None else 'NULL'},{data['open']},{data['close']},{data['high']},{data['low']},{data['volume']},{data['closed'] if data['closed'] else 'NULL'})"
+
+
+
+class SymbolPostgres(PostgresCallback, BackendCallback):
+    default_key = 'rtt-refresh-symbols'
+    default_table = SYMBOL
+
+    def format(self, data: Tuple):
+        exchange, symbol, timestamp, receipt, data = data
+        return f"(DEFAULT,'{timestamp}','{receipt}','{exchange}','{symbol}','{data['base_symbol']}','{data['quote_symbol']}')"

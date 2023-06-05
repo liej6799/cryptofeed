@@ -67,6 +67,7 @@ UNSUPPORTED = 'unsupported'
 CANDLES = 'candles'
 MANAGER = 'manager'
 MANAGER_STREAM = 'manager_stream'
+SYMBOL = 'tb_symbol'
 
 # Account Data / Authenticated Channels
 ORDER_INFO = 'order_info'

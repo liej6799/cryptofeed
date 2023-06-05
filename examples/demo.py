@@ -28,7 +28,7 @@ from cryptofeed.exchanges.alphavantage import AlphaVantage
 from cryptofeed.exchanges.pyth import Pyth
 from cryptofeed.backends.redis import TickerRedis, ManagerRedis, ManagerStream
 from cryptofeed.backends.appwrite import RTTRefreshSymbolAppwrite
-
+from cryptofeed.backends.postgres import SymbolPostgres
 # Examples of some handlers for different updates. These currently don't do much.
 # Handlers should conform to the patterns/signatures in callback.py
 # Handlers can be normal methods/functions or async. The feedhandler is paused
@@ -138,7 +138,9 @@ def main():
     #                                                                     token = APPWRITE_KEY )})
 
     #f.add_feed(Bitget(symbols=['BTC-USD'], channels=[TICKER], callbacks={TICKER: ticker}))
-
+    f.add_feed(Pyth(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
+                                                                        project = APPWRITE_PROJ, 
+                                                                        token = APPWRITE_KEY)}))
     f.run()
 
 
