@@ -48,7 +48,7 @@ class Exchange:
         self.ignore_invalid_instruments = self.config.ignore_invalid_instruments
 
         if not Symbols.populated(self.id):
-            self.symbol_mapping()
+            self.symbol_mapping(key_id = self.key_id)
         self.normalized_symbol_mapping, _ = Symbols.get(self.id)
         self.exchange_symbol_mapping = {value: key for key, value in self.normalized_symbol_mapping.items()}
 
@@ -99,10 +99,10 @@ class Exchange:
         return ep.route('instruments')
 
     @classmethod
-    def _get_symbol_data(cls):
+    def _get_symbol_data(cls, key_id = None):
         data = []
         for ep in cls.rest_endpoints:
-            addr = cls._symbol_endpoint_prepare(ep)
+            addr = cls._symbol_endpoint_prepare(ep, key_id = key_id)
             if isinstance(addr, list):
                 for ep in addr:
                     LOG.debug("%s: reading symbol information from %s", cls.id, ep)
@@ -113,11 +113,11 @@ class Exchange:
         return data
     
     @classmethod
-    def symbol_mapping(cls, refresh=False) -> Dict:
+    def symbol_mapping(cls, key_id = None, refresh=False) -> Dict:
         if Symbols.populated(cls.id) and not refresh:
             return Symbols.get(cls.id)[0]
         try:
-            data = cls._get_symbol_data()
+            data = cls._get_symbol_data(key_id)
             syms, info = cls._parse_symbol_data(data if len(data) > 1 else data[0])
             Symbols.set(cls.id, syms, info)
             return syms
@@ -239,7 +239,7 @@ class RestExchange:
         co = self.open_interest(symbol, retry_count=retry_count, retry_delay=retry_delay)
         return self._sync_run_coroutine(co)
 
-    async def open_interest(self, symbol: str, retry_count=1, retry_delay=60):
+    async def open_interet(self, symbol: str, retry_count=1, retry_delay=60):
         raise NotImplementedError
 
     def l2_book_sync(self, symbol: str, retry_count=1, retry_delay=60):

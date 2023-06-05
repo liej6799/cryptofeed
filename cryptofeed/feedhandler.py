@@ -285,7 +285,7 @@ class Manager(FeedHandler):
     async def restart_feed(self, loop):
         # {'ticker': ['BTC/USD,GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU']}
         await asyncio.sleep(10)
-        
+
         await self.stop_feed(loop)
         for i in self.feeds:
             i.update_symbol( symbols=['ETH-USD', 'BTC-USD'], channels=[TICKER])
@@ -309,11 +309,12 @@ class Manager(FeedHandler):
 
     def setup_manager(self, loop):
   
-        self.add_feed(Pyth(loop=loop, symbols=['BTC-USD'], channels=[TICKER],
+        self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD'], channels=[TICKER], config=self.config,
                            callbacks={TICKER: self.ticker, RTTREFRESHSYMBOLS : self.refresh}))
+        # .ticker_sync('BTC-USD')
+        print(self.feeds[-1].orders_sync('AAPL-USD'))
 
-
-        loop.create_task(self.restart_feed(loop))
+        #loop.create_task(self.restart_feed(loop))
 
     # async def consumer(self):
     #     while True:

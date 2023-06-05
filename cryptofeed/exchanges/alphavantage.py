@@ -18,17 +18,20 @@ from cryptofeed.defines import BID, BUY, ASK, ALPHAVANTAGE, L3_BOOK, SELL, TRADE
 from cryptofeed.feed import Feed
 from cryptofeed.symbols import Symbol
 from cryptofeed.exceptions import MissingSequenceNumber
-       
+from cryptofeed.exchanges.mixins.alphavantage_rest import AlphaVantageRestMixin
+from typing import Dict, List, Tuple, Union
+
 LOG = logging.getLogger('feedhandler')
 
-class AlphaVantage(Feed):
+class AlphaVantage(Feed, AlphaVantageRestMixin):
     id = ALPHAVANTAGE
     websocket_endpoints = [WebsocketEndpoint('')]
-    rest_endpoints = [RestEndpoint('https://www.alphavantage.co', routes=Routes(['/query?function=LISTING_STATUS&apikey=ALMRVP7KUB3QEPSC']))]
+    rest_endpoints = [RestEndpoint('https://www.alphavantage.co/', routes=Routes(['query?function=LISTING_STATUS']))]
     key_seperator = ','
     websocket_channels = {
         TICKER: '',
     }
+
 
     @classmethod
     def _parse_symbol_data(cls, data: dict) -> Tuple[Dict, Dict]:
@@ -49,6 +52,10 @@ class AlphaVantage(Feed):
 
         return ret, info
     
-
-    
-
+    @classmethod
+    def _symbol_endpoint_prepare(cls, ep: RestEndpoint, key_id) -> Union[List[str], str]:
+        """
+        override if a specific exchange needs to do something first, like query an API
+        to get a list of currencies, that are then used to build the list of symbol endpoints
+        """
+        return [ep + '&apikey=' + key_id for ep in ep.route('instruments')]
