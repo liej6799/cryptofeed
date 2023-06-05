@@ -127,7 +127,7 @@ class AsyncConnection(Connection):
 
 
 class HTTPAsyncConn(AsyncConnection):
-    def __init__(self, conn_id: str, proxy: StrOrURL = None):
+    def __init__(self, conn_id: str, proxy: StrOrURL = None, raw_data_callback=None):
         """
         conn_id: str
             id associated with the connection
@@ -136,6 +136,8 @@ class HTTPAsyncConn(AsyncConnection):
         """
         super().__init__(f'{conn_id}.http.{self.conn_count}')
         self.proxy = proxy
+        self.raw_data_callback = raw_data_callback
+
 
     @property
     def is_open(self) -> bool:
@@ -169,7 +171,7 @@ class HTTPAsyncConn(AsyncConnection):
                 self.last_message = time.time()
                 self.received += 1
                 if self.raw_data_callback:
-                    await self.raw_data_callback(data, self.last_message, self.id, endpoint=address, header=None if return_headers is False else dict(response.headers))
+                    await self.raw_data_callback(data, self.last_message, self.id)
                 if response.status == 429 and retry_count:
                     LOG.warning("%s: encountered a rate limit for address %s, retrying in 60 seconds", self.id, address)
                     retry_count -= 1

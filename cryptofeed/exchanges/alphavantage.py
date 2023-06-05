@@ -63,3 +63,6 @@ class AlphaVantage(Feed, AlphaVantageRestMixin):
         to get a list of currencies, that are then used to build the list of symbol endpoints
         """
         return [ep + '&apikey=' + key_id for ep in ep.route('instruments')]
+    
+    async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
+        print(msg, conn, ts)

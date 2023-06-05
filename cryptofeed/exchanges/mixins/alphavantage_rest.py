@@ -52,5 +52,5 @@ class AlphaVantageRestMixin(RestExchange):
         return json.loads(data, parse_float=Decimal)
 
     async def daily_ohlcv(self, symbol: str = None):
-        data = await self._request(GET, 'query', auth=True, payload={'function': 'TIME_SERIES_DAILY_ADJUSTED', 'symbol': self.std_symbol_to_exchange_symbol(symbol), 'outputsize': 'full'})
-        return data
+        await self._request(GET, 'query', auth=True, payload={'function': 'TIME_SERIES_DAILY_ADJUSTED', 'symbol': self.std_symbol_to_exchange_symbol(symbol), 'outputsize': 'full'})
+     

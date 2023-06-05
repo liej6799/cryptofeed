@@ -289,36 +289,11 @@ class Manager(FeedHandler):
     #     self.feeds = []
     #     self.add_feed(Pyth(symbols=['ETH-USD'], channels=[TICKER],
     #                 callbacks={TICKER: self.ticker, RTTREFRESHSYMBOLS : self.refresh}))
-
-    async def wait_test(self):
-        print('start wait')
-        await asyncio.sleep(2)
-        print('end wait')
+    #  i.update_symbol( symbols=['ETH-USD', 'BTC-USD'], channels=[TICKER])
 
     async def restart_feed(self, loop):
-
-        print(await self.feeds[-1][DAILY_OHLCV]('AAPL-USD'))
-        print(await self.feeds[-1][DAILY_OHLCV]('TSLA-USD'))
-        # print('start')
-        # print(loop)
-    
-        # await self.wait_test()
-        # print('end')
-        #print(await self.feeds[-1][DAILY_OHLCV]('AAPL-USD'))
-        #print('no lock')
-        # {'ticker': ['BTC/USD,GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU']}
-        # await asyncio.sleep(10)
-
-        # await self.stop_feed(loop)
-        # for i in self.feeds:
-        #     i.update_symbol( symbols=['ETH-USD', 'BTC-USD'], channels=[TICKER])
-        # self.start_feed(loop)
-
-        #await self.stop_feed(loop)
-        # need to wait for all the feeds to stop
-
-        # self.start_feed(loop)
-
+        await self.stop_feed(loop)
+        self.start_feed(loop)
 
 
     async def refresh_symbols(self):
@@ -333,11 +308,11 @@ class Manager(FeedHandler):
     def setup_manager(self, loop):
   
         self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD'], channels=[TICKER, DAILY_OHLCV], config=self.config,
-                           callbacks={DAILY_OHLCV : self.refresh}))
-       # print(self.feeds[-1][DAILY_OHLCV]('AAPL-USD'))
+                           callbacks={TICKER: self.ticker, DAILY_OHLCV : self.refresh}))
+        print(self.feeds[-1].daily_ohlcv_sync('AAPL-USD'))
  
         # once task is created, cant perform run_until_complete, use await instead
-        loop.create_task(self.restart_feed(loop))
+        #loop.create_task(self.restart_feed(loop))
 
     # async def consumer(self):
     #     while True:

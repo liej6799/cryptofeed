@@ -75,7 +75,8 @@ class Feed(Exchange):
         self.checksum_validation = checksum_validation
         self.requires_authentication = False
         self._feed_config = defaultdict(list)
-        self.http_conn = HTTPAsyncConn(self.id, http_proxy)
+        self.http_conn = HTTPAsyncConn(self.id, http_proxy, self.message_handler)
+        
         self.http_proxy = http_proxy
         self.start_delay = delay_start
         self.candle_interval = candle_interval
