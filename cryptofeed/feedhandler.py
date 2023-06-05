@@ -246,10 +246,11 @@ class FeedHandler:
         APPWRITE_PROJ = '6469dde52fe9831c4b94'
         APPWRITE_KEY = '548dc4eda5e039d46a7bb3fd8ee0c9bff427403e135a2bad71bde34e350c5b022fc8cdad1892a2f84b628ee31457c764f179e56b963354c933d8a3f4b1fbfda1b9728b9e12a01ef9d44def2d6387cd4a59dce87152d877e4640aff442a04faebe091fd2e2cc9cf3248f274ba51c8cc4d6aef7480c5eac9b4fe593b6349e3e823'
 
-        # self.add_feed(Pyth(channels=[TICKER], config=self.config, symbols=['AAPL-USD'],  callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
-        #                                                                 project = APPWRITE_PROJ, 
-        #                                                                 token = APPWRITE_KEY)}))
-        self.add_feed(AlphaVantage(channels=[TICKER], config=self.config, symbols=['AAPL-USD'],  callbacks={RTTREFRESHSYMBOLS: SymbolPostgres()}))
+        self.add_feed(Pyth(channels=[TICKER], config=self.config, symbols=['AAPL-USD'],  callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
+                                                                        project = APPWRITE_PROJ, 
+                                                                        token = APPWRITE_KEY)}), loop=loop)
+
+        #self.add_feed(Pyth(channels=[TICKER], config=self.config, symbols=['AAPL-USD'],  callbacks={RTTREFRESHSYMBOLS: SymbolPostgres()}))
                       
         for i in self.feeds:            
             for j in i.symbols(): 
@@ -274,13 +275,11 @@ class FeedHandler:
                         for i in self.feeds:                            
                             for j in i.symbols():                      
                                 base, quote = j.split('-')
-)
                                 t = RefreshSymbols(i.id, base, quote, time.time(), raw=j)
                                 await i.callback(RTTREFRESHSYMBOLS,t, time.time())
                             break
                                 
 
-   
     async def manager_handler(self):
         while True:
             try:

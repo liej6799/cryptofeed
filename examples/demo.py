@@ -11,6 +11,9 @@ from cryptofeed.defines import CANDLES,MANAGER,  BID, ASK, PYTH, BLOCKCHAIN, FUN
 
 from cryptofeed.exchanges import (Binance, BinanceUS, BinanceFutures, Bitfinex, Bitflyer, AscendEX, Bitmex, Bitstamp, Bittrex, Coinbase, Gateio,
                                   HitBTC, Huobi, HuobiDM, HuobiSwap, Kraken, OKCoin, OKX, Poloniex, Bybit, KuCoin, Bequant, Upbit, Probit)
+
+from cryptofeed.backends.appwrite import RTTRefreshSymbolAppwrite
+
 from cryptofeed.exchanges.bitdotcom import BitDotCom
 from cryptofeed.exchanges.bitget import Bitget
 from cryptofeed.exchanges.cryptodotcom import CryptoDotCom
@@ -128,21 +131,19 @@ def main():
     # f.add_feed(BitDotCom(config="config.yaml", sandbox=True, symbols=['BTC-USDT', 'BTC-USD-PERP'], channels=[TICKER, TRADES, L2_BOOK], callbacks={TRADES: trade, L2_BOOK: book, TICKER: ticker}))
     # f.add_feed(Bitget(checksum_validation=True, config='config.yaml', symbols=['BTC-USDT', 'BTC-USDT-PERP', 'BTC-USD-PERP'], channels=[L2_BOOK, TRADES, TICKER, CANDLES], callbacks={CANDLES: candle_callback, TRADES: trade, L2_BOOK: book, TICKER: ticker}))
     # f.add_feed(IndependentReserve(symbols=['BTC-USD'], channels=[L3_BOOK, TRADES], callbacks={TRADES: trade, L3_BOOK: book}))
-    APPWRITE_ADDR = 'https://192.168.191.213:4430'
-    APPWRITE_PROJ = '6469dde52fe9831c4b94'
-    APPWRITE_KEY = '548dc4eda5e039d46a7bb3fd8ee0c9bff427403e135a2bad71bde34e350c5b022fc8cdad1892a2f84b628ee31457c764f179e56b963354c933d8a3f4b1fbfda1b9728b9e12a01ef9d44def2d6387cd4a59dce87152d877e4640aff442a04faebe091fd2e2cc9cf3248f274ba51c8cc4d6aef7480c5eac9b4fe593b6349e3e823'
-
 
     # f.add_feed(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
     #                                                                     project = APPWRITE_PROJ, 
     #                                                                     token = APPWRITE_KEY )})
 
     #f.add_feed(Bitget(symbols=['BTC-USD'], channels=[TICKER], callbacks={TICKER: ticker}))
-    f.add_feed(Pyth(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
-                                                                        project = APPWRITE_PROJ, 
-                                                                        token = APPWRITE_KEY)}))
+    # f.add_feed(Pyth(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
+    #                                                                     project = APPWRITE_PROJ, 
+    #                                                                     token = APPWRITE_KEY)}))
     f.run()
-
+    # f.add_feed(Pyth(callbacks={RTTREFRESHSYMBOLS: RTTRefreshSymbolAppwrite(addr= APPWRITE_ADDR, 
+    #                                                                         project = APPWRITE_PROJ, 
+    #                                                                         token = APPWRITE_KEY)}))
 
 if __name__ == '__main__':
     main()
