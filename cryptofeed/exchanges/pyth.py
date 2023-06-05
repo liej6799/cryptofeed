@@ -71,7 +71,7 @@ class Pyth(Feed):
     
     
     @classmethod
-    def _get_symbol_data(cls):
+    def _get_symbol_data(cls, key_id = None):
         return asyncio.get_event_loop().run_until_complete(cls.get_all_symbols_async())
 
     @classmethod

@@ -10,7 +10,7 @@ from cryptofeed.connection import Connection
 import logging
 import signal
 from signal import SIGABRT, SIGINT, SIGTERM
-from cryptofeed.defines import CANDLES,MANAGER,  BID, ASK, PYTH, BLOCKCHAIN, FUNDING, GEMINI, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, PERPETUAL, TICKER, TRADES, INDEX, MANAGER_STREAM, RTTREFRESHSYMBOLS
+from cryptofeed.defines import CANDLES,MANAGER,  BID, ASK, PYTH, BLOCKCHAIN, FUNDING, GEMINI, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, PERPETUAL, TICKER, TRADES, INDEX, MANAGER_STREAM, RTTREFRESHSYMBOLS, DAILY_OHLCV
 
 import sys
 import time
@@ -262,6 +262,14 @@ class FeedHandler:
 
 class Manager(FeedHandler):
 
+    # @staticmethod
+    # def worker(restart_feed):
+    #     try:
+    #         loop = asyncio.new_event_loop()
+    #         loop.run_until_complete(restart_feed())
+    #     except KeyboardInterrupt:
+    #         pass
+
     def __init__(self,  **kwargs):
         super().__init__(**kwargs)
 
@@ -282,14 +290,29 @@ class Manager(FeedHandler):
     #     self.add_feed(Pyth(symbols=['ETH-USD'], channels=[TICKER],
     #                 callbacks={TICKER: self.ticker, RTTREFRESHSYMBOLS : self.refresh}))
 
-    async def restart_feed(self, loop):
-        # {'ticker': ['BTC/USD,GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU']}
-        await asyncio.sleep(10)
+    async def wait_test(self):
+        print('start wait')
+        await asyncio.sleep(2)
+        print('end wait')
 
-        await self.stop_feed(loop)
-        for i in self.feeds:
-            i.update_symbol( symbols=['ETH-USD', 'BTC-USD'], channels=[TICKER])
-        self.start_feed(loop)
+    async def restart_feed(self, loop):
+
+        print(await self.feeds[-1][DAILY_OHLCV]('AAPL-USD'))
+        print(await self.feeds[-1][DAILY_OHLCV]('TSLA-USD'))
+        # print('start')
+        # print(loop)
+    
+        # await self.wait_test()
+        # print('end')
+        #print(await self.feeds[-1][DAILY_OHLCV]('AAPL-USD'))
+        #print('no lock')
+        # {'ticker': ['BTC/USD,GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU']}
+        # await asyncio.sleep(10)
+
+        # await self.stop_feed(loop)
+        # for i in self.feeds:
+        #     i.update_symbol( symbols=['ETH-USD', 'BTC-USD'], channels=[TICKER])
+        # self.start_feed(loop)
 
         #await self.stop_feed(loop)
         # need to wait for all the feeds to stop
@@ -309,12 +332,12 @@ class Manager(FeedHandler):
 
     def setup_manager(self, loop):
   
-        self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD'], channels=[TICKER], config=self.config,
-                           callbacks={TICKER: self.ticker, RTTREFRESHSYMBOLS : self.refresh}))
-        # .ticker_sync('BTC-USD')
-        print(self.feeds[-1].orders_sync('AAPL-USD'))
-
-        #loop.create_task(self.restart_feed(loop))
+        self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD'], channels=[TICKER, DAILY_OHLCV], config=self.config,
+                           callbacks={DAILY_OHLCV : self.refresh}))
+       # print(self.feeds[-1][DAILY_OHLCV]('AAPL-USD'))
+ 
+        # once task is created, cant perform run_until_complete, use await instead
+        loop.create_task(self.restart_feed(loop))
 
     # async def consumer(self):
     #     while True:

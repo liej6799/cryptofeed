@@ -64,6 +64,7 @@ class ConnectionHandler:
                     rate_limited = 0
                     delay = 1
                     if self.timeout != -1:
+                        
                         loop = asyncio.get_running_loop()
                         
                         loop.create_task(self._watcher())

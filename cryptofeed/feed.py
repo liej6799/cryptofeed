@@ -14,7 +14,7 @@ from aiohttp.typedefs import StrOrURL
 from cryptofeed.callback import Callback
 from cryptofeed.connection import AsyncConnection, HTTPAsyncConn, WSAsyncConn
 from cryptofeed.connection_handler import ConnectionHandler
-from cryptofeed.defines import BALANCES, CANDLES, FUNDING, INDEX, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, ORDER_INFO, POSITIONS, TICKER, TRADES, FILLS
+from cryptofeed.defines import BALANCES, CANDLES, FUNDING, INDEX, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, ORDER_INFO, POSITIONS, TICKER, TRADES, FILLS, DAILY_OHLCV
 from cryptofeed.exceptions import BidAskOverlapping
 from cryptofeed.exchange import Exchange
 from cryptofeed.types import OrderBook
@@ -135,7 +135,8 @@ class Feed(Exchange):
                           ORDER_INFO: Callback(None),
                           FILLS: Callback(None),
                           BALANCES: Callback(None),
-                          POSITIONS: Callback(None)
+                          POSITIONS: Callback(None),
+                          DAILY_OHLCV: Callback(None)
                           }
 
         if callbacks:
@@ -145,6 +146,7 @@ class Feed(Exchange):
         for key, callback in self.callbacks.items():
             if not isinstance(callback, list):
                 self.callbacks[key] = [callback]
+     
 
     def update_symbol(self, symbols, channels):
         if symbols and channels:

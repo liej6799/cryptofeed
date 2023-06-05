@@ -11,7 +11,7 @@ from datetime import datetime as dt, timezone
 from typing import AsyncGenerator, Dict, List, Optional, Tuple, Union
 import time
 
-from cryptofeed.defines import CANDLES, FUNDING, L2_BOOK, L3_BOOK, OPEN_INTEREST, POSITIONS, TICKER, TRADES, TRANSACTIONS, BALANCES, ORDER_INFO, FILLS
+from cryptofeed.defines import CANDLES, FUNDING, L2_BOOK, L3_BOOK, OPEN_INTEREST, POSITIONS, TICKER, TRADES, TRANSACTIONS, BALANCES, ORDER_INFO, FILLS, DAILY_OHLCV
 from cryptofeed.symbols import Symbol, Symbols
 from cryptofeed.connection import HTTPSync, RestEndpoint
 from cryptofeed.exceptions import UnsupportedDataFeed, UnsupportedSymbol, UnsupportedTradingOption
@@ -128,13 +128,13 @@ class Exchange:
     @classmethod
     def std_channel_to_exchange(cls, channel: str) -> str:
         try:
-            return cls.websocket_channels[channel]
+            return {**cls.websocket_channels, **cls.rest_channels}[channel]
         except KeyError:
             raise UnsupportedDataFeed(f'{channel} is not supported on {cls.id}')
 
     @classmethod
     def exchange_channel_to_std(cls, channel: str) -> str:
-        for chan, exch in cls.websocket_channels.items():
+        for chan, exch in {**cls.websocket_channels, **cls.rest_channels}.items():
             if exch == channel:
                 return chan
         raise ValueError(f'Unable to normalize channel {cls.id}')
@@ -171,6 +171,7 @@ class RestExchange:
     order_options = NotImplemented
 
     def _sync_run_coroutine(self, coroutine):
+        #loop = asyncio.create_task()
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(coroutine)
 
@@ -312,6 +313,13 @@ class RestExchange:
 
     async def ledger(self, aclass=None, asset=None, ledger_type=None, start=None, end=None):
         raise NotImplementedError
+    
+    def daily_ohlcv_sync(self, symbol: str = None):
+        co = self.daily_ohlcv(symbol)
+        return self._sync_run_coroutine(co)
+
+    async def daily_ohlcv(self, symbol: str = None):
+        raise NotImplementedError
 
     def __getitem__(self, key):
         if key == TRADES:
@@ -328,3 +336,5 @@ class RestExchange:
             return self.ticker
         elif key == OPEN_INTEREST:
             return self.open_interest
+        elif key == DAILY_OHLCV:
+            return self.daily_ohlcv

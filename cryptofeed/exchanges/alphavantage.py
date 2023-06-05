@@ -14,7 +14,7 @@ import csv
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection, RestEndpoint, Routes, WebsocketEndpoint
-from cryptofeed.defines import BID, BUY, ASK, ALPHAVANTAGE, L3_BOOK, SELL, TRADES, TICKER
+from cryptofeed.defines import BID, BUY, ASK, ALPHAVANTAGE, L3_BOOK, SELL, TRADES, TICKER, DAILY_OHLCV
 from cryptofeed.feed import Feed
 from cryptofeed.symbols import Symbol
 from cryptofeed.exceptions import MissingSequenceNumber
@@ -29,7 +29,11 @@ class AlphaVantage(Feed, AlphaVantageRestMixin):
     rest_endpoints = [RestEndpoint('https://www.alphavantage.co/', routes=Routes(['query?function=LISTING_STATUS']))]
     key_seperator = ','
     websocket_channels = {
-        TICKER: '',
+        TICKER: TICKER,
+    }
+
+    rest_channels = {
+        DAILY_OHLCV: DAILY_OHLCV
     }
 
 

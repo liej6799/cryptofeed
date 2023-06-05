@@ -68,6 +68,8 @@ CANDLES = 'candles'
 MANAGER = 'manager'
 MANAGER_STREAM = 'manager_stream'
 SYMBOL = 'tb_symbol'
+DAILY_OHLCV = 'daily_ohlcv'
+
 
 # Account Data / Authenticated Channels
 ORDER_INFO = 'order_info'

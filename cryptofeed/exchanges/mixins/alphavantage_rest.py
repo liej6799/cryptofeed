@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 
 from yapic import json
 
-from cryptofeed.defines import BALANCES, BUY, CANCEL_ORDER, CANDLES, DELETE, FILL_OR_KILL, GET, GOOD_TIL_CANCELED, IMMEDIATE_OR_CANCEL, LIMIT, MARKET, ORDERS, ORDER_STATUS, PLACE_ORDER, POSITIONS, POST, SELL, TRADES
+from cryptofeed.defines import BALANCES, BUY, CANCEL_ORDER, CANDLES, DELETE, FILL_OR_KILL, GET, GOOD_TIL_CANCELED, IMMEDIATE_OR_CANCEL, LIMIT, MARKET, ORDERS, ORDER_STATUS, PLACE_ORDER, POSITIONS, POST, SELL, TRADES, DAILY_OHLCV
 from cryptofeed.exchange import RestExchange
 from cryptofeed.types import Candle
 
@@ -25,12 +25,9 @@ LOG = logging.getLogger('feedhandler')
 class AlphaVantageRestMixin(RestExchange):
     api = "https://www.alphavantage.co/"
     rest_channels = (
-        TRADES
+        DAILY_OHLCV 
     )
-    def _nonce(self):
-        return str(int(round(time.time() * 1000)))
-
-
+    
     async def _request(self, method: str, endpoint: str, auth: bool = False, payload={}, api=None):
         query_string = urlencode(payload)
 
