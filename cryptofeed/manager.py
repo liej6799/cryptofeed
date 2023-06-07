@@ -42,14 +42,33 @@ class Manager(FeedHandler):
         await self.stop_feed(loop)
         self.start_feed(loop)
 
+    async def redis_handler(self, loop):
+        stream = ManagerStream()
+        stream.start(loop)
+        while stream.running:
+            async with stream.read_queue() as updates:
+                update = list(updates)[-1]
+                
+                if update:
+                  
+                    decoded = update['data'].decode('UTF-8')
+                    if decoded == RTTREFRESHSYMBOLS:
+                        self.refresh_symbols(loop)
+                        break
+                    elif decoded == DAILY_OHLCV:
+                        self.daily_ohlcv(loop)
+                        break
+
     def refresh_symbols(self, loop):
          # fire and forget
-        loop.create_task(self.feeds[-1].refresh_symbols())
+        for i in self.feeds:                
+            loop.create_task(i[RTTREFRESHSYMBOLS]())
 
-    def daily_ohlcv_sync(self, loop):
+    def daily_ohlcv(self, loop):
         # fire and forget
-        loop.create_task(self.feeds[-1][DAILY_OHLCV]('AAPL-USD'))
-
+        for i in self.feeds:                
+            loop.create_task(i[DAILY_OHLCV]())
+        
     async def ticker(self, t, receipt_timestamp):
         print(f'Ticker received at {receipt_timestamp}: {t}')
 
@@ -60,7 +79,8 @@ class Manager(FeedHandler):
 
         # print(self.feeds[-1].daily_ohlcv_sync('TSLA-USD'))
         # once task is created, cant perform run_until_complete, use await instead
-        self.refresh_symbols(loop)
+        self.daily_ohlcv(loop)
+        #loop.create_task(self.redis_handler(loop))
 
         #self.daily_ohlcv_sync(loop)
   

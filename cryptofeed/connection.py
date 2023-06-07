@@ -160,18 +160,25 @@ class HTTPAsyncConn(AsyncConnection):
             self.received = 0
             self.last_message = None
 
-    async def read(self, address: str, header=None, params=None, return_headers=False, retry_count=0, retry_delay=60) -> str:
+    async def read(self, address: str, header=None, params=None, return_headers=False, retry_count=0, retry_delay=60, type=None) -> str:
         if not self.is_open:
             await self._open()
 
         LOG.debug("%s: requesting data from %s", self.id, address)
         while True:
             async with self.conn.get(address, headers=header, params=params, proxy=self.proxy) as response:
+
                 data = await response.text()
                 self.last_message = time.time()
                 self.received += 1
                 if self.raw_data_callback:
-                    await self.raw_data_callback(data, self.last_message, self.id)
+                    if type:
+                        await self.raw_data_callback({
+                            'type': type,
+                            'data': data
+                        }, self.last_message, self.id)
+                    else:
+                        await self.raw_data_callback(data, self.last_message, self.id)
                 if response.status == 429 and retry_count:
                     LOG.warning("%s: encountered a rate limit for address %s, retrying in 60 seconds", self.id, address)
                     retry_count -= 1
@@ -184,7 +191,7 @@ class HTTPAsyncConn(AsyncConnection):
                     return data, response.headers
                 return data
 
-    async def write(self, address: str, msg: str, header=None, retry_count=0, retry_delay=60) -> str:
+    async def write(self, address: str, msg: str, header=None, retry_count=0, retry_delay=60, type=None) -> str:
         if not self.is_open:
             await self._open()
 
@@ -204,7 +211,7 @@ class HTTPAsyncConn(AsyncConnection):
                 self._handle_error(response, data)
                 return data
 
-    async def delete(self, address: str, header=None, retry_count=0, retry_delay=60) -> str:
+    async def delete(self, address: str, header=None, retry_count=0, retry_delay=60, type=None) -> str:
         if not self.is_open:
             await self._open()
 

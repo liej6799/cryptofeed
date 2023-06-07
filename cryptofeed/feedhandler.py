@@ -85,13 +85,13 @@ class FeedHandler:
         if self.config.log_msg:
             LOG.info(self.config.log_msg)
 
-        # if self.config.uvloop:
-        #     try:
-        #         import uvloop
-        #         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-        #         LOG.info('FH: uvloop initalized')
-        #     except ImportError:
-        #         LOG.info("FH: uvloop not initialized")
+        if self.config.uvloop:
+            try:
+                import uvloop
+                asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+                LOG.info('FH: uvloop initalized')
+            except ImportError:
+                LOG.info("FH: uvloop not initialized")
 
     def add_feed(self, feed, install_manager = True, loop=None, **kwargs):
         """

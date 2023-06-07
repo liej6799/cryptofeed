@@ -55,21 +55,26 @@ class Quandl(Feed, QuandlRestMixin):
             t = RefreshSymbols(self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
             await self.callback(RTTREFRESHSYMBOLS,t, time())
 
+    async def _daily_ohlcv(self, msg, ts):
+        print(msg['data'])
 
     async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
-        msg_type = msg.get('type')
 
+        msg_type = msg.get('type')
+    
         if msg_type == RTTREFRESHSYMBOLS:
             await self._refresh_symbol(msg, ts)
+        elif msg_type == DAILY_OHLCV:
+            await self._daily_ohlcv(msg, ts)
         
     async def refresh_symbols(self):       
-        res = {}
         data = []
         for j in self.symbols():          
             base, quote = j.split('-')
             data.append({'base': base, 'quote': quote, 'symbol': j})
 
-        res['data'] = data
-        res['type'] = RTTREFRESHSYMBOLS
-        await self.message_handler(res, None, time())
+        await self.message_handler({
+            'data': data,
+            'type':RTTREFRESHSYMBOLS
+            }, None, time())
             

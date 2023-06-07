@@ -14,13 +14,12 @@ from urllib.parse import urlencode
 
 from yapic import json
 
-from cryptofeed.defines import BALANCES, BUY, CANCEL_ORDER, CANDLES, DELETE, FILL_OR_KILL, GET, GOOD_TIL_CANCELED, IMMEDIATE_OR_CANCEL, LIMIT, MARKET, ORDERS, ORDER_STATUS, PLACE_ORDER, POSITIONS, POST, SELL, TRADES, DAILY_OHLCV
+from cryptofeed.defines import  DELETE, GET, POST, DAILY_OHLCV
 from cryptofeed.exchange import RestExchange
 from cryptofeed.types import Candle
 
 
 LOG = logging.getLogger('feedhandler')
-
 
 class QuandlRestMixin(RestExchange):
     api = "https://data.nasdaq.com/api/v3/datatables/"
@@ -44,13 +43,17 @@ class QuandlRestMixin(RestExchange):
       
         header = {}
         if method == GET:
-            data = await self.http_conn.read(url, header=header)
+            data = await self.http_conn.read(url, header=header, type=DAILY_OHLCV)
         elif method == POST:
-            data = await self.http_conn.write(url, msg=None, header=header)
+            data = await self.http_conn.write(url, msg=None, header=header, type=DAILY_OHLCV)
         elif method == DELETE:
-            data = await self.http_conn.delete(url, header=header)
+            data = await self.http_conn.delete(url, header=header, type=DAILY_OHLCV)
+            
         return json.loads(data, parse_float=Decimal)
 
-    async def daily_ohlcv(self, symbol: str = None):
-        await self._request(GET, 'WIKI/PRICES.json', auth=True, payload={'ticker': self.std_symbol_to_exchange_symbol(symbol)})
+    async def daily_ohlcv(self):
+        
+        #loop through all symbols and get daily ohlcv
+        for pair in self.subscription[DAILY_OHLCV]:
+            await self._request(GET, 'WIKI/PRICES.json', auth=True, payload={'ticker': (pair)})
     

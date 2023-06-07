@@ -11,11 +11,13 @@ from datetime import datetime as dt, timezone
 from typing import AsyncGenerator, Dict, List, Optional, Tuple, Union
 import time
 
-from cryptofeed.defines import CANDLES, FUNDING, L2_BOOK, L3_BOOK, OPEN_INTEREST, POSITIONS, TICKER, TRADES, TRANSACTIONS, BALANCES, ORDER_INFO, FILLS, DAILY_OHLCV
+from cryptofeed.defines import CANDLES, FUNDING, L2_BOOK, L3_BOOK, OPEN_INTEREST, POSITIONS, TICKER, TRADES, TRANSACTIONS, BALANCES, ORDER_INFO, FILLS, DAILY_OHLCV, RTTREFRESHSYMBOLS
 from cryptofeed.symbols import Symbol, Symbols
 from cryptofeed.connection import HTTPSync, RestEndpoint
 from cryptofeed.exceptions import UnsupportedDataFeed, UnsupportedSymbol, UnsupportedTradingOption
 from cryptofeed.config import Config
+
+from cryptofeed.connection import AsyncConnection
 
 
 LOG = logging.getLogger('feedhandler')
@@ -174,9 +176,29 @@ class Exchange:
                 return symbol
             raise UnsupportedSymbol(f'{symbol} is not supported on {self.id}')
         
-    @classmethod
     async def refresh_symbols(self):
         raise NotImplementedError
+    
+    async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
+        raise NotImplementedError            
+
+    def __getitem__(self, key):
+        if key == RTTREFRESHSYMBOLS:
+            return self.refresh_symbols
+        elif key == CANDLES:
+            return self.candles
+        elif key == FUNDING:
+            return self.funding
+        elif key == L2_BOOK:
+            return self.l2_book
+        elif key == L3_BOOK:
+            return self.l3_book
+        elif key == TICKER:
+            return self.ticker
+        elif key == OPEN_INTEREST:
+            return self.open_interest
+        elif key == DAILY_OHLCV:
+            return self.daily_ohlcv
 
 class RestExchange:
     api = NotImplemented
@@ -328,27 +350,9 @@ class RestExchange:
     async def ledger(self, aclass=None, asset=None, ledger_type=None, start=None, end=None):
         raise NotImplementedError
     
-    def daily_ohlcv_sync(self, symbol: str = None):
-        co = self.daily_ohlcv(symbol)
+    def daily_ohlcv_sync(self):
+        co = self.daily_ohlcv()
         return self._sync_run_coroutine(co)
 
-    async def daily_ohlcv(self, symbol: str = None):
+    async def daily_ohlcv(self):
         raise NotImplementedError
-
-    def __getitem__(self, key):
-        if key == TRADES:
-            return self.trades
-        elif key == CANDLES:
-            return self.candles
-        elif key == FUNDING:
-            return self.funding
-        elif key == L2_BOOK:
-            return self.l2_book
-        elif key == L3_BOOK:
-            return self.l3_book
-        elif key == TICKER:
-            return self.ticker
-        elif key == OPEN_INTEREST:
-            return self.open_interest
-        elif key == DAILY_OHLCV:
-            return self.daily_ohlcv
