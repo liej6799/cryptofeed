@@ -12,9 +12,9 @@ from collections import defaultdict
 from time import time
 import csv
 from yapic import json
-
+from cryptofeed.types import Ticker, RefreshSymbols
 from cryptofeed.connection import AsyncConnection, RestEndpoint, Routes, WebsocketEndpoint
-from cryptofeed.defines import BID, BUY, ASK, QUANDL, L3_BOOK, SELL, TRADES, TICKER, DAILY_OHLCV
+from cryptofeed.defines import BID, BUY, ASK, QUANDL, L3_BOOK, SELL, TRADES, TICKER, DAILY_OHLCV, RTTREFRESHSYMBOLS
 from cryptofeed.feed import Feed
 from cryptofeed.symbols import Symbol
 from cryptofeed.exceptions import MissingSequenceNumber
@@ -49,6 +49,27 @@ class Quandl(Feed, QuandlRestMixin):
             info['instrument_type'][s.normalized] = s.type
 
         return ret, info
+    
+    async def _refresh_symbol(self, msg, ts):
+        for j in msg['data']: 
+            t = RefreshSymbols(self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
+            await self.callback(RTTREFRESHSYMBOLS,t, time())
+
 
     async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
-        print(msg, conn, ts)
+        msg_type = msg.get('type')
+
+        if msg_type == RTTREFRESHSYMBOLS:
+            await self._refresh_symbol(msg, ts)
+        
+    async def refresh_symbols(self):       
+        res = {}
+        data = []
+        for j in self.symbols():          
+            base, quote = j.split('-')
+            data.append({'base': base, 'quote': quote, 'symbol': j})
+
+        res['data'] = data
+        res['type'] = RTTREFRESHSYMBOLS
+        await self.message_handler(res, None, time())
+            

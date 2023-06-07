@@ -173,7 +173,10 @@ class Exchange:
                 LOG.warning('Invalid symbol %s configured for %s', symbol, self.id)
                 return symbol
             raise UnsupportedSymbol(f'{symbol} is not supported on {self.id}')
-
+        
+    @classmethod
+    async def refresh_symbols(self):
+        raise NotImplementedError
 
 class RestExchange:
     api = NotImplemented
