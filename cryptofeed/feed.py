@@ -75,8 +75,9 @@ class Feed(Exchange):
         self.checksum_validation = checksum_validation
         self.requires_authentication = False
         self._feed_config = defaultdict(list)
-        self.http_conn = HTTPAsyncConn(self.id, http_proxy, self.message_handler)
-        
+        self.http_conn = HTTPAsyncConn(
+            self.id, proxy=http_proxy, message_handler=self.message_handler)
+
         self.http_proxy = http_proxy
         self.start_delay = delay_start
         self.candle_interval = candle_interval
@@ -85,38 +86,47 @@ class Feed(Exchange):
 
         if self.valid_candle_intervals != NotImplemented:
             if candle_interval not in self.valid_candle_intervals:
-                raise ValueError(f"Candle interval must be one of {self.valid_candle_intervals}")
+                raise ValueError(
+                    f"Candle interval must be one of {self.valid_candle_intervals}")
 
         if self.candle_interval_map != NotImplemented:
-            self.normalize_candle_interval = {value: key for key, value in self.candle_interval_map.items()}
+            self.normalize_candle_interval = {
+                value: key for key, value in self.candle_interval_map.items()}
 
         if subscription is not None and (symbols is not None or channels is not None):
-            raise ValueError("Use subscription, or channels and symbols, not both")
+            raise ValueError(
+                "Use subscription, or channels and symbols, not both")
 
         if subscription is not None:
             for channel in subscription:
                 chan = self.std_channel_to_exchange(channel)
                 if self.is_authenticated_channel(channel):
                     if not self.key_id or not self.key_secret:
-                        raise ValueError("Authenticated channel subscribed to, but no auth keys provided")
+                        raise ValueError(
+                            "Authenticated channel subscribed to, but no auth keys provided")
                     self.requires_authentication = True
                 self.normalized_symbols.extend(subscription[channel])
-                self.subscription[chan].update([self.std_symbol_to_exchange_symbol(symbol) for symbol in subscription[channel]])
+                self.subscription[chan].update([self.std_symbol_to_exchange_symbol(
+                    symbol) for symbol in subscription[channel]])
                 self._feed_config[channel].extend(self.normalized_symbols)
 
         if symbols and channels:
             if any(self.is_authenticated_channel(chan) for chan in channels):
                 if not self.key_id or not self.key_secret:
-                    raise ValueError("Authenticated channel subscribed to, but no auth keys provided")
+                    raise ValueError(
+                        "Authenticated channel subscribed to, but no auth keys provided")
                 self.requires_authentication = True
 
             # if we dont have a subscription dict, we'll use symbols+channels and build one
-            [self._feed_config[channel].extend(symbols) for channel in channels]
+            [self._feed_config[channel].extend(
+                symbols) for channel in channels]
             self.normalized_symbols = symbols
             self.normalized_channels = channels
 
-            symbols = [self.std_symbol_to_exchange_symbol(symbol) for symbol in symbols]
-            channels = list(set([self.std_channel_to_exchange(chan) for chan in channels]))
+            symbols = [self.std_symbol_to_exchange_symbol(
+                symbol) for symbol in symbols]
+            channels = list(
+                set([self.std_channel_to_exchange(chan) for chan in channels]))
             self.subscription = {chan: symbols for chan in channels}
 
         self._feed_config = dict(self._feed_config)
@@ -147,22 +157,25 @@ class Feed(Exchange):
         for key, callback in self.callbacks.items():
             if not isinstance(callback, list):
                 self.callbacks[key] = [callback]
-     
 
     def update_symbol(self, symbols, channels):
         if symbols and channels:
             if any(self.is_authenticated_channel(chan) for chan in channels):
                 if not self.key_id or not self.key_secret:
-                    raise ValueError("Authenticated channel subscribed to, but no auth keys provided")
+                    raise ValueError(
+                        "Authenticated channel subscribed to, but no auth keys provided")
                 self.requires_authentication = True
 
             # if we dont have a subscription dict, we'll use symbols+channels and build one
-            [self._feed_config[channel].extend(symbols) for channel in channels]
+            [self._feed_config[channel].extend(
+                symbols) for channel in channels]
             self.normalized_symbols = symbols
             self.normalized_channels = channels
 
-            symbols = [self.std_symbol_to_exchange_symbol(symbol) for symbol in symbols]
-            channels = list(set([self.std_channel_to_exchange(chan) for chan in channels]))
+            symbols = [self.std_symbol_to_exchange_symbol(
+                symbol) for symbol in symbols]
+            channels = list(
+                set([self.std_channel_to_exchange(chan) for chan in channels]))
             self.subscription = {chan: symbols for chan in channels}
 
         if self.callbacks:
@@ -201,11 +214,13 @@ class Feed(Exchange):
                         sub[channel] = []
                     sub[channel].append(pair)
                     if sum(map(len, sub.values())) == limit:
-                        ret.append((WSAsyncConn(addr, self.id, authentication=auth, subscription=sub, **options), self.subscribe, self.message_handler, self.authenticate))
+                        ret.append((WSAsyncConn(addr, self.id, authentication=auth, subscription=sub,
+                                   **options), self.subscribe, self.message_handler, self.authenticate))
                         sub = {}
 
             if sum(map(len, sub.values())) > 0:
-                ret.append((WSAsyncConn(addr, self.id, authentication=auth, subscription=sub, **options), self.subscribe, self.message_handler, self.authenticate))
+                ret.append((WSAsyncConn(addr, self.id, authentication=auth, subscription=sub,
+                           **options), self.subscribe, self.message_handler, self.authenticate))
             return ret
 
         ret = self._connect_rest()
@@ -225,20 +240,25 @@ class Feed(Exchange):
             # filtering can only be done on normalized symbols, but this subscription needs to have the raw/exchange specific
             # subscription, so we need to temporarily convert the symbols back and forth. It has to be done here
             # while in the context of the class
-            temp_sub = {chan: [self.exchange_symbol_to_std_symbol(s) for s in symbols] for chan, symbols in self.subscription.items()}
-            filtered_sub = {chan: [self.std_symbol_to_exchange_symbol(s) for s in symbols] for chan, symbols in endpoint.subscription_filter(temp_sub).items()}
+            temp_sub = {chan: [self.exchange_symbol_to_std_symbol(
+                s) for s in symbols] for chan, symbols in self.subscription.items()}
+            filtered_sub = {chan: [self.std_symbol_to_exchange_symbol(
+                s) for s in symbols] for chan, symbols in endpoint.subscription_filter(temp_sub).items()}
             count = sum(map(len, filtered_sub.values()))
 
             if not self.allow_empty_subscriptions and (not filtered_sub or count == 0):
                 continue
             if limit and count > limit:
-                ret.extend(limit_sub(filtered_sub, limit, auth, endpoint.options))
+                ret.extend(limit_sub(filtered_sub, limit,
+                           auth, endpoint.options))
             else:
                 if isinstance(addr, list):
                     for add in addr:
-                        ret.append((WSAsyncConn(add, self.id, authentication=auth, subscription=filtered_sub, **endpoint.options), self.subscribe, self.message_handler, self.authenticate))
+                        ret.append((WSAsyncConn(add, self.id, authentication=auth, subscription=filtered_sub,
+                                   **endpoint.options), self.subscribe, self.message_handler, self.authenticate))
                 else:
-                    ret.append((WSAsyncConn(addr, self.id, authentication=auth, subscription=filtered_sub, **endpoint.options), self.subscribe, self.message_handler, self.authenticate))
+                    ret.append((WSAsyncConn(addr, self.id, authentication=auth, subscription=filtered_sub,
+                               **endpoint.options), self.subscribe, self.message_handler, self.authenticate))
 
         return ret
 
@@ -259,7 +279,8 @@ class Feed(Exchange):
     def address(self) -> Union[List, str]:
         if len(self.websocket_endpoints) == 0:
             return
-        addrs = [ep.get_address(sandbox=self.sandbox) for ep in self.websocket_endpoints]
+        addrs = [ep.get_address(sandbox=self.sandbox)
+                 for ep in self.websocket_endpoints]
         return addrs[0] if len(addrs) == 1 else addrs
 
     async def book_callback(self, book_type: str, book: OrderBook, receipt_timestamp: float, timestamp=None, raw=None, sequence_number=None, checksum=None, delta=None):
@@ -278,7 +299,8 @@ class Feed(Exchange):
         if len(bid) > 0 and len(ask) > 0:
             best_bid, best_ask = bid.index(0)[0], ask.index(0)[0]
             if best_bid >= best_ask:
-                raise BidAskOverlapping(f"{self.id} - {data.symbol}: best bid {best_bid} >= best ask {best_ask}")
+                raise BidAskOverlapping(
+                    f"{self.id} - {data.symbol}: best bid {best_bid} >= best ask {best_ask}")
 
     async def callback(self, data_type, obj, receipt_timestamp):
         for cb in self.callbacks[data_type]:
@@ -300,7 +322,8 @@ class Feed(Exchange):
         for callbacks in self.callbacks.values():
             for callback in callbacks:
                 if hasattr(callback, 'stop'):
-                    LOG.info('%s: stopping backend %s', self.id, self.backend_name(callback))
+                    LOG.info('%s: stopping backend %s', self.id,
+                             self.backend_name(callback))
                     await callback.stop()
         for c in self.connection_handlers:
             await c.conn.close()
@@ -315,15 +338,18 @@ class Feed(Exchange):
         Create tasks for exchange interfaces and backends
         """
         for conn, sub, handler, auth in self.connect():
-            self.connection_handlers.append(ConnectionHandler(conn, sub, handler, auth, self.retries, timeout=self.timeout, timeout_interval=self.timeout_interval, exceptions=self.exceptions, log_on_error=self.log_on_error, start_delay=self.start_delay))
+            self.connection_handlers.append(ConnectionHandler(conn, sub, handler, auth, self.retries, timeout=self.timeout,
+                                            timeout_interval=self.timeout_interval, exceptions=self.exceptions, log_on_error=self.log_on_error, start_delay=self.start_delay))
             self.connection_handlers[-1].start(loop)
 
         for callbacks in self.callbacks.values():
             for callback in callbacks:
                 if hasattr(callback, 'start'):
-                    LOG.info('%s: starting backend task %s with multiprocessing=%s', self.id, self.backend_name(callback), 'True' if self.config.backend_multiprocessing else 'False')
+                    LOG.info('%s: starting backend task %s with multiprocessing=%s', self.id, self.backend_name(
+                        callback), 'True' if self.config.backend_multiprocessing else 'False')
                     # Backends start tasks to write messages
-                    callback.start(loop, multiprocess=self.config.backend_multiprocessing)
+                    callback.start(
+                        loop, multiprocess=self.config.backend_multiprocessing)
 
     def backend_name(self, callback):
         if hasattr(callback, '__class__'):

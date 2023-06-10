@@ -12,9 +12,9 @@ from collections import defaultdict
 from time import time
 import csv
 from yapic import json
-from cryptofeed.types import Ticker, RefreshSymbols
-from cryptofeed.connection import AsyncConnection, RestEndpoint, Routes, WebsocketEndpoint
-from cryptofeed.defines import BID, BUY, ASK, QUANDL, L3_BOOK, SELL, TRADES, TICKER, DAILY_OHLCV, RTTREFRESHSYMBOLS
+from cryptofeed.types import Ticker, RefreshSymbols, OpenHighLowCloseVolume
+from cryptofeed.connection import AsyncConnection, RestEndpoint, Routes, WebsocketEndpoint, HTTPPoll, HTTPAsyncConn
+from cryptofeed.defines import BID, BUY, ASK, QUANDL, L3_BOOK, SELL, TRADES, TICKER, DAILY_OHLCV, REFRESH_SYMBOL
 from cryptofeed.feed import Feed
 from cryptofeed.symbols import Symbol
 from cryptofeed.exceptions import MissingSequenceNumber
@@ -22,59 +22,77 @@ from typing import Dict, List, Tuple, Union
 from cryptofeed.exchanges.mixins.quandl_rest import QuandlRestMixin
 LOG = logging.getLogger('feedhandler')
 
+
 class Quandl(Feed, QuandlRestMixin):
     id = QUANDL
     websocket_endpoints = [WebsocketEndpoint('')]
-    rest_endpoints = [RestEndpoint('https://static.quandl.com/', routes=Routes(['coverage/WIKI_PRICES.csv']))]
+    rest_endpoints = [RestEndpoint(
+        'https://static.quandl.com/', routes=Routes(['coverage/WIKI_PRICES.csv']))]
     key_seperator = ','
     websocket_channels = {}
 
     rest_channels = {
-        DAILY_OHLCV: DAILY_OHLCV
+        DAILY_OHLCV: DAILY_OHLCV,
+        REFRESH_SYMBOL: REFRESH_SYMBOL
     }
 
     @classmethod
     def _parse_symbol_data(cls, data: dict) -> Tuple[Dict, Dict]:
- 
-        ret = {} 
+
+        ret = {}
         info = {'instrument_type': {}, 'key': {}}
 
-        for i in csv.reader(data.splitlines(), delimiter=','):  
-            symbol = i[0] 
-            symbol = symbol.replace('_', '/') 
+        for i in csv.reader(data.splitlines(), delimiter=','):
+            symbol = i[0]
+            symbol = symbol.replace('_', '/')
 
-            s = Symbol(symbol,'USD')
+            s = Symbol(symbol, 'USD')
 
             ret[s.normalized] = str(symbol)
             info['instrument_type'][s.normalized] = s.type
 
         return ret, info
-    
+
+    # def _connect_rest(self):
+    #     ret = []
+    #     addrs = 'https://data.nasdaq.com/api/v3/datatables/WIKI/PRICES.json?ticker=AAPL&api_key=561eFGtNz8dwM627n-_-'
+    #     ret.append((HTTPPoll(addrs, self.id), self.subscribe,
+    #                self.message_handler, self.authenticate))
+
+    #     retur`cn ret
+
     async def _refresh_symbol(self, msg, ts):
-        for j in msg['data']: 
-            t = RefreshSymbols(self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
-            await self.callback(RTTREFRESHSYMBOLS,t, time())
+        for j in msg:
+            t = RefreshSymbols(
+                self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
+            await self.callback(REFRESH_SYMBOL, t, time())
 
     async def _daily_ohlcv(self, msg, ts):
-        print(msg['data'])
+
+        for i in msg['datatable']['data']:
+            # t = OpenHighLowCloseVolume(self.id,
+            #                            i[0])
+            print(i)
 
     async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
-
         msg_type = msg.get('type')
-    
-        if msg_type == RTTREFRESHSYMBOLS:
+        msg = json.loads(msg.get('data'), parse_float=Decimal)
+
+        if msg_type == REFRESH_SYMBOL:
             await self._refresh_symbol(msg, ts)
         elif msg_type == DAILY_OHLCV:
             await self._daily_ohlcv(msg, ts)
-        
-    async def refresh_symbols(self):       
+
+    async def refresh_symbol(self):
         data = []
-        for j in self.symbols():          
+        for j in self.symbols():
             base, quote = j.split('-')
             data.append({'base': base, 'quote': quote, 'symbol': j})
 
         await self.message_handler({
-            'data': data,
-            'type':RTTREFRESHSYMBOLS
-            }, None, time())
-            
+            'data': json.dumps(data),
+            'type': REFRESH_SYMBOL
+        }, None, time())
+
+    async def subscribe(self, conn: AsyncConnection):
+        print('subscribing')

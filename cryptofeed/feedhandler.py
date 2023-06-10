@@ -10,19 +10,16 @@ from cryptofeed.connection import Connection
 import logging
 import signal
 from signal import SIGABRT, SIGINT, SIGTERM
-from cryptofeed.defines import CANDLES,MANAGER,  BID, ASK, PYTH, BLOCKCHAIN, FUNDING, GEMINI, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, PERPETUAL, TICKER, TRADES, INDEX, MANAGER_STREAM, RTTREFRESHSYMBOLS, DAILY_OHLCV
 
 import sys
 import time
 from typing import List
 from cryptofeed.backends.redis import ManagerStream
-from cryptofeed.defines import RTTREFRESHSYMBOLS
 
 from cryptofeed.exchanges.bitdotcom import BitDotCom
 from cryptofeed.exchanges.pyth import Pyth
 from cryptofeed.exchanges.alphavantage import AlphaVantage
 from cryptofeed.exchanges.quandl import Quandl
-from cryptofeed.backends.appwrite import RTTRefreshSymbolAppwrite
 
 from cryptofeed.backends.postgres import SymbolPostgres
 from cryptofeed.types import Ticker, RefreshSymbols
@@ -80,7 +77,8 @@ class FeedHandler:
             self.raw_data_collection = raw_data_collection
 
         if not self.config.log.disabled:
-            get_logger('feedhandler', self.config.log.filename, self.config.log.level)
+            get_logger('feedhandler', self.config.log.filename,
+                       self.config.log.level)
 
         if self.config.log_msg:
             LOG.info(self.config.log_msg)
@@ -93,7 +91,7 @@ class FeedHandler:
             except ImportError:
                 LOG.info("FH: uvloop not initialized")
 
-    def add_feed(self, feed, install_manager = True, loop=None, **kwargs):
+    def add_feed(self, feed, install_manager=True, loop=None, **kwargs):
         """
         feed: str or class
             the feed (exchange) to add to the handler
@@ -105,20 +103,22 @@ class FeedHandler:
         """
         if isinstance(feed, str):
             if feed in EXCHANGE_MAP:
-                self.feeds.append((EXCHANGE_MAP[feed](config=self.config, **kwargs)))
+                self.feeds.append(
+                    (EXCHANGE_MAP[feed](config=self.config, **kwargs)))
             else:
                 raise ValueError("Invalid feed specified")
         else:
             self.feeds.append((feed))
         if self.raw_data_collection:
-            self.raw_data_collection.write_header(self.feeds[-1].id, json.dumps(self.feeds[-1]._feed_config))
-  
+            self.raw_data_collection.write_header(
+                self.feeds[-1].id, json.dumps(self.feeds[-1]._feed_config))
+
         if loop is None:
             loop = asyncio.get_event_loop()
 
         if install_manager:
-            self.manager = ManagerStream(feed = self.feeds[-1]) 
-    
+            self.manager = ManagerStream(feed=self.feeds[-1])
+
         if self.running:
             if loop is None:
                 loop = asyncio.get_event_loop()
@@ -139,7 +139,8 @@ class FeedHandler:
         """
         cb = NBBO(callback, symbols)
         for feed in feeds:
-            self.add_feed(feed(channels=[L2_BOOK], symbols=symbols, callbacks={L2_BOOK: cb}, config=config))
+            self.add_feed(feed(channels=[L2_BOOK], symbols=symbols, callbacks={
+                          L2_BOOK: cb}, config=config))
 
     def run(self, start_loop: bool = True, install_signal_handlers: bool = True, install_manager: bool = True, exception_handler=None):
         """
@@ -161,13 +162,12 @@ class FeedHandler:
         self.running = True
         loop = asyncio.get_event_loop()
         # Good to enable when debugging or without code change: export PYTHONASYNCIODEBUG=1)
-        #loop.set_debug(True)
+        # loop.set_debug(True)
 
         if install_signal_handlers:
             setup_signal_handlers(loop)
         if install_manager:
             self.setup_manager(loop)
-            
 
         for feed in self.feeds:
             feed.start(loop)
@@ -202,7 +202,8 @@ class FeedHandler:
             LOG.info('FH: shutting down raw data collection')
             self.raw_data_collection.stop()
 
-        LOG.info('FH: create the tasks to properly shutdown the backends (to flush the local cache)')
+        LOG.info(
+            'FH: create the tasks to properly shutdown the backends (to flush the local cache)')
         shutdown_tasks = []
         for feed in self.feeds:
             task = loop.create_task(feed.shutdown())
@@ -213,7 +214,8 @@ class FeedHandler:
                 pass
             shutdown_tasks.append(task)
 
-        LOG.info('FH: wait %s backend tasks until termination', len(shutdown_tasks))
+        LOG.info('FH: wait %s backend tasks until termination',
+                 len(shutdown_tasks))
         return shutdown_tasks
 
     async def stop_async(self, loop=None):
@@ -256,7 +258,8 @@ class FeedHandler:
             task.cancel()
 
         LOG.info('FH: run the pending tasks until complete')
-        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        loop.run_until_complete(asyncio.gather(
+            *pending, return_exceptions=True))
 
         LOG.info('FH: shutdown asynchronous generators')
         loop.run_until_complete(loop.shutdown_asyncgens())

@@ -12,11 +12,11 @@ import asyncpg
 from yapic import json
 
 from cryptofeed.backends.backend import BackendBookCallback, BackendCallback, BackendQueue
-from cryptofeed.defines import CANDLES, FUNDING, OPEN_INTEREST, TICKER, TRADES, LIQUIDATIONS, INDEX, SYMBOL
+from cryptofeed.defines import CANDLES, FUNDING, OPEN_INTEREST, TICKER, TRADES, LIQUIDATIONS, INDEX, REFRESH_SYMBOL
 
 
 class PostgresCallback(BackendQueue):
-    def __init__(self, host='192.168.191.213', user='postgres', pw='password', db='rtt-db', port=5432, table=None, custom_columns: dict = None, none_to=None, numeric_type=float, **kwargs):
+    def __init__(self, host='192.168.191.59', user='postgres', pw='password', db='rtt-db', port=5432, table=None, custom_columns: dict = None, none_to=None, numeric_type=float, **kwargs):
         """
         host: str
             Database host address
@@ -74,9 +74,11 @@ class PostgresCallback(BackendQueue):
         }
 
         # Cross-ref data dict with user column names from custom_columns dict, inserting NULL if requested data point not present
-        sequence_gen = (d[field] if d[field] else 'NULL' for field in self.custom_columns.keys())
+        sequence_gen = (d[field] if d[field]
+                        else 'NULL' for field in self.custom_columns.keys())
         # Iterate through the generator and surround everything except floats and NULL in single quotes
-        sql_string = ','.join(str(s) if isinstance(s, float) or s == 'NULL' else "'" + str(s) + "'" for s in sequence_gen)
+        sql_string = ','.join(str(s) if isinstance(
+            s, float) or s == 'NULL' else "'" + str(s) + "'" for s in sequence_gen)
         return f"({sql_string})"
 
     async def writer(self):
@@ -85,9 +87,11 @@ class PostgresCallback(BackendQueue):
                 if len(updates) > 0:
                     batch = []
                     for data in updates:
-                        ts = dt.utcfromtimestamp(data['timestamp']) if data['timestamp'] else None
+                        ts = dt.utcfromtimestamp(
+                            data['timestamp']) if data['timestamp'] else None
                         rts = dt.utcfromtimestamp(data['receipt_timestamp'])
-                        batch.append((data['exchange'], data['symbol'], ts, rts, data))
+                        batch.append(
+                            (data['exchange'], data['symbol'], ts, rts, data))
                     await self.write_batch(batch)
 
     async def write_batch(self, updates: list):
@@ -126,11 +130,13 @@ class FundingPostgres(PostgresCallback, BackendCallback):
     def format(self, data: Tuple):
         if self.custom_columns:
             if data[4]['next_funding_time']:
-                data[4]['next_funding_time'] = dt.utcfromtimestamp(data[4]['next_funding_time'])
+                data[4]['next_funding_time'] = dt.utcfromtimestamp(
+                    data[4]['next_funding_time'])
             return self._custom_format(data)
         else:
             exchange, symbol, timestamp, receipt, data = data
-            ts = dt.utcfromtimestamp(data['next_funding_time']) if data['next_funding_time'] else 'NULL'
+            ts = dt.utcfromtimestamp(
+                data['next_funding_time']) if data['next_funding_time'] else 'NULL'
             return f"(DEFAULT,'{timestamp}','{receipt}','{exchange}','{symbol}',{data['mark_price'] if data['mark_price'] else 'NULL'},{data['rate']},'{ts}',{data['predicted_rate']})"
 
 
@@ -224,10 +230,9 @@ class CandlesPostgres(PostgresCallback, BackendCallback):
             return f"(DEFAULT,'{timestamp}','{receipt}','{exchange}','{symbol}','{open_ts}','{close_ts}','{data['interval']}',{data['trades'] if data['trades'] is not None else 'NULL'},{data['open']},{data['close']},{data['high']},{data['low']},{data['volume']},{data['closed'] if data['closed'] else 'NULL'})"
 
 
-
 class SymbolPostgres(PostgresCallback, BackendCallback):
-    default_key = 'rtt-refresh-symbols'
-    default_table = SYMBOL
+    default_key = REFRESH_SYMBOL
+    default_table = 'tb_symbol'
 
     def format(self, data: Tuple):
         exchange, symbol, timestamp, receipt, data = data

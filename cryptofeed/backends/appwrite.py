@@ -12,7 +12,7 @@ from yapic import json
 
 from cryptofeed.backends.backend import BackendBookCallback, BackendCallback
 from cryptofeed.backends.http import HTTPCallback
-from cryptofeed.defines import BID, ASK
+from cryptofeed.defines import BID, ASK, SYMBOL
 
 LOG = logging.getLogger('feedhandler')
 
@@ -44,8 +44,8 @@ class AppwriteCallback(HTTPCallback):
                     
         await self.session.close()
 
-class RTTRefreshSymbolAppwrite(AppwriteCallback, BackendCallback):
-    default_key = 'rtt-refresh-symbols'
+class SymbolAppwrite(AppwriteCallback, BackendCallback):
+    default_key = SYMBOL
     database_id = "rtt-db"
     collection_id = "tb_symbol"
 

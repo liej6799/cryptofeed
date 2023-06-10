@@ -11,7 +11,7 @@ from datetime import datetime as dt, timezone
 from typing import AsyncGenerator, Dict, List, Optional, Tuple, Union
 import time
 
-from cryptofeed.defines import CANDLES, FUNDING, L2_BOOK, L3_BOOK, OPEN_INTEREST, POSITIONS, TICKER, TRADES, TRANSACTIONS, BALANCES, ORDER_INFO, FILLS, DAILY_OHLCV, RTTREFRESHSYMBOLS
+from cryptofeed.defines import CANDLES, FUNDING, L2_BOOK, L3_BOOK, OPEN_INTEREST, POSITIONS, TICKER, TRADES, TRANSACTIONS, BALANCES, ORDER_INFO, FILLS, DAILY_OHLCV, REFRESH_SYMBOL
 from cryptofeed.symbols import Symbol, Symbols
 from cryptofeed.connection import HTTPSync, RestEndpoint
 from cryptofeed.exceptions import UnsupportedDataFeed, UnsupportedSymbol, UnsupportedTradingOption
@@ -42,7 +42,8 @@ class Exchange:
         self.sandbox = sandbox
         self.subaccount = subaccount
 
-        keys = self.config[self.id.lower()] if self.subaccount is None else self.config[self.id.lower()][self.subaccount]
+        keys = self.config[self.id.lower(
+        )] if self.subaccount is None else self.config[self.id.lower()][self.subaccount]
         self.key_id = keys.key_id
         self.key_secret = keys.key_secret
         self.key_passphrase = keys.key_passphrase
@@ -51,9 +52,10 @@ class Exchange:
         self.ignore_invalid_instruments = self.config.ignore_invalid_instruments
 
         if not Symbols.populated(self.id):
-            self.symbol_mapping(key_id = self.key_id)
+            self.symbol_mapping(key_id=self.key_id)
         self.normalized_symbol_mapping, _ = Symbols.get(self.id)
-        self.exchange_symbol_mapping = {value: key for key, value in self.normalized_symbol_mapping.items()}
+        self.exchange_symbol_mapping = {
+            value: key for key, value in self.normalized_symbol_mapping.items()}
 
     @classmethod
     def timestamp_normalize(cls, ts: dt) -> float:
@@ -88,13 +90,13 @@ class Exchange:
         data['initialized_timestamp'] = cls.initialized_timestamp
         data['id'] = cls.id
         return data
-    
+
     @classmethod
     def symbols(cls, refresh=False) -> list:
         return list(cls.symbol_mapping(refresh=refresh).keys())
 
     @classmethod
-    def _symbol_endpoint_prepare(cls, ep: RestEndpoint, key_id = None) -> Union[List[str], str]:
+    def _symbol_endpoint_prepare(cls, ep: RestEndpoint, key_id=None) -> Union[List[str], str]:
         """
         override if a specific exchange needs to do something first, like query an API
         to get a list of currencies, that are then used to build the list of symbol endpoints
@@ -102,31 +104,34 @@ class Exchange:
         return ep.route('instruments')
 
     @classmethod
-    def _get_symbol_data(cls, key_id = None):
+    def _get_symbol_data(cls, key_id=None):
         data = []
         for ep in cls.rest_endpoints:
-            addr = cls._symbol_endpoint_prepare(ep, key_id = key_id)
+            addr = cls._symbol_endpoint_prepare(ep, key_id=key_id)
             if isinstance(addr, list):
                 for ep in addr:
-                    LOG.debug("%s: reading symbol information from %s", cls.id, ep)
+                    LOG.debug(
+                        "%s: reading symbol information from %s", cls.id, ep)
                     data.append(cls.http_sync.read(ep, json=True, uuid=cls.id))
             else:
                 LOG.debug("%s: reading symbol information from %s", cls.id, addr)
                 data.append(cls.http_sync.read(addr, json=True, uuid=cls.id))
         return data
-    
+
     @classmethod
-    def symbol_mapping(cls, key_id = None, refresh=False) -> Dict:
+    def symbol_mapping(cls, key_id=None, refresh=False) -> Dict:
         if Symbols.populated(cls.id) and not refresh:
             return Symbols.get(cls.id)[0]
         try:
             data = cls._get_symbol_data(key_id)
-  
-            syms, info = cls._parse_symbol_data(data if len(data) > 1 else data[0])
+
+            syms, info = cls._parse_symbol_data(
+                data if len(data) > 1 else data[0])
             Symbols.set(cls.id, syms, info)
             return syms
         except Exception as e:
-            LOG.error("%s: Failed to parse symbol information: %s", cls.id, str(e), exc_info=True)
+            LOG.error("%s: Failed to parse symbol information: %s",
+                      cls.id, str(e), exc_info=True)
             raise
 
     @classmethod
@@ -135,13 +140,14 @@ class Exchange:
             if cls.rest_channels is not NotImplemented:
                 return {**cls.websocket_channels, **cls.rest_channels}[channel]
             return cls.websocket_channels[channel]
-        
+
         except KeyError:
-            raise UnsupportedDataFeed(f'{channel} is not supported on {cls.id}')
+            raise UnsupportedDataFeed(
+                f'{channel} is not supported on {cls.id}')
 
     @classmethod
     def exchange_channel_to_std(cls, channel: str) -> str:
-        
+
         if cls.rest_channels is not NotImplemented:
             total_channels = {**cls.websocket_channels, **cls.s}
         else:
@@ -161,7 +167,8 @@ class Exchange:
             return self.exchange_symbol_mapping[symbol]
         except KeyError:
             if self.ignore_invalid_instruments:
-                LOG.warning('Invalid symbol %s configured for %s', symbol, self.id)
+                LOG.warning('Invalid symbol %s configured for %s',
+                            symbol, self.id)
                 return symbol
             raise UnsupportedSymbol(f'{symbol} is not supported on {self.id}')
 
@@ -172,19 +179,17 @@ class Exchange:
             return self.normalized_symbol_mapping[symbol]
         except KeyError:
             if self.ignore_invalid_instruments:
-                LOG.warning('Invalid symbol %s configured for %s', symbol, self.id)
+                LOG.warning('Invalid symbol %s configured for %s',
+                            symbol, self.id)
                 return symbol
             raise UnsupportedSymbol(f'{symbol} is not supported on {self.id}')
-        
-    async def refresh_symbols(self):
+
+    async def refresh_symbol(self):
         raise NotImplementedError
-    
-    async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
-        raise NotImplementedError            
 
     def __getitem__(self, key):
-        if key == RTTREFRESHSYMBOLS:
-            return self.refresh_symbols
+        if key == REFRESH_SYMBOL:
+            return self.refresh_symbol
         elif key == CANDLES:
             return self.candles
         elif key == FUNDING:
@@ -200,6 +205,7 @@ class Exchange:
         elif key == DAILY_OHLCV:
             return self.daily_ohlcv
 
+
 class RestExchange:
     api = NotImplemented
     sandbox_api = NotImplemented
@@ -207,7 +213,7 @@ class RestExchange:
     order_options = NotImplemented
 
     def _sync_run_coroutine(self, coroutine):
-        #loop = asyncio.create_task()
+        # loop = asyncio.create_task()
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(coroutine)
 
@@ -240,54 +246,62 @@ class RestExchange:
         if end:
             end = self._datetime_normalize(end)
         if start and start > end:
-            raise ValueError('Start time must be less than or equal to end time')
+            raise ValueError(
+                'Start time must be less than or equal to end time')
         return start, end if start else None
 
     # public / non account specific
     def ticker_sync(self, symbol: str, retry_count=1, retry_delay=60):
-        co = self.ticker(symbol, retry_count=retry_count, retry_delay=retry_delay)
+        co = self.ticker(symbol, retry_count=retry_count,
+                         retry_delay=retry_delay)
         return self._sync_run_coroutine(co)
 
     async def ticker(self, symbol: str, retry_count=1, retry_delay=60):
         raise NotImplementedError
 
     def candles_sync(self, symbol: str, start=None, end=None, interval='1m', retry_count=1, retry_delay=60):
-        gen = self.candles(symbol, start=start, end=end, interval=interval, retry_count=retry_count, retry_delay=retry_delay)
+        gen = self.candles(symbol, start=start, end=end, interval=interval,
+                           retry_count=retry_count, retry_delay=retry_delay)
         return self._sync_run_generator(gen)
 
     async def candles(self, symbol: str, start=None, end=None, interval='1m', retry_count=1, retry_delay=60):
         raise NotImplementedError
 
     def trades_sync(self, symbol: str, start=None, end=None, retry_count=1, retry_delay=60):
-        gen = self.trades(symbol, start=start, end=end, retry_count=retry_count, retry_delay=retry_delay)
+        gen = self.trades(symbol, start=start, end=end,
+                          retry_count=retry_count, retry_delay=retry_delay)
         return self._sync_run_generator(gen)
 
     async def trades(self, symbol: str, start=None, end=None, retry_count=1, retry_delay=60):
         raise NotImplementedError
 
     def funding_sync(self, symbol: str, retry_count=1, retry_delay=60):
-        co = self.funding(symbol, retry_count=retry_count, retry_delay=retry_delay)
+        co = self.funding(symbol, retry_count=retry_count,
+                          retry_delay=retry_delay)
         return self._sync_run_coroutine(co)
 
     async def funding(self, symbol: str, retry_count=1, retry_delay=60):
         raise NotImplementedError
 
     def open_interest_sync(self, symbol: str, retry_count=1, retry_delay=60):
-        co = self.open_interest(symbol, retry_count=retry_count, retry_delay=retry_delay)
+        co = self.open_interest(
+            symbol, retry_count=retry_count, retry_delay=retry_delay)
         return self._sync_run_coroutine(co)
 
     async def open_interet(self, symbol: str, retry_count=1, retry_delay=60):
         raise NotImplementedError
 
     def l2_book_sync(self, symbol: str, retry_count=1, retry_delay=60):
-        co = self.l2_book(symbol, retry_count=retry_count, retry_delay=retry_delay)
+        co = self.l2_book(symbol, retry_count=retry_count,
+                          retry_delay=retry_delay)
         return self._sync_run_coroutine(co)
 
     async def l2_book(self, symbol: str, retry_count=1, retry_delay=60):
         raise NotImplementedError
 
     def l3_book_sync(self, symbol: str, retry_count=1, retry_delay=60):
-        co = self.l3_book(symbol, retry_count=retry_count, retry_delay=retry_delay)
+        co = self.l3_book(symbol, retry_count=retry_count,
+                          retry_delay=retry_delay)
         return self._sync_run_coroutine(co)
 
     async def l3_book(self, symbol: str, retry_count=1, retry_delay=60):
@@ -295,7 +309,8 @@ class RestExchange:
 
     # account specific
     def place_order_sync(self, symbol: str, side: str, order_type: str, amount: Decimal, price=None, **kwargs):
-        co = self.place_order(symbol, side, order_type, amount, price, **kwargs)
+        co = self.place_order(symbol, side, order_type,
+                              amount, price, **kwargs)
         return self._sync_run_coroutine(co)
 
     async def place_order(self, symbol: str, side: str, order_type: str, amount: Decimal, price=None, **kwargs):
@@ -349,7 +364,7 @@ class RestExchange:
 
     async def ledger(self, aclass=None, asset=None, ledger_type=None, start=None, end=None):
         raise NotImplementedError
-    
+
     def daily_ohlcv_sync(self):
         co = self.daily_ohlcv()
         return self._sync_run_coroutine(co)

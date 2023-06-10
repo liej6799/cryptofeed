@@ -13,11 +13,11 @@ from cryptofeed.backends.backend import BackendBookCallback, BackendCallback, Ba
 
 
 class RedisCallback(BackendQueue):
-    def __init__(self, host='192.168.191.213', port=6379, socket=None, key=None, none_to='None', numeric_type=float, **kwargs):
+    def __init__(self, host='192.168.191.59', port=6379, socket=None, key=None, none_to='None', numeric_type=float, **kwargs):
         """
         setting key lets you override the prefix on the
         key used in redis. The defaults are related to the data
-        being stored, i.e. trade, funding, etc
+        being stored, i.e. trade, fun  ding, etc
         """
         prefix = 'redis://'
         if socket:
@@ -32,7 +32,7 @@ class RedisCallback(BackendQueue):
 
 
 class RedisZSetCallback(RedisCallback):
-    def __init__(self, host='192.168.191.213', port=6379, socket=None, key=None, numeric_type=float, score_key='timestamp', **kwargs):
+    def __init__(self, host='192.168.191.59', port=6379, socket=None, key=None, numeric_type=float, score_key='timestamp', **kwargs):
         """
         score_key: str
             the value at this key will be used to store the data in the ZSet in redis. The
@@ -40,7 +40,8 @@ class RedisZSetCallback(RedisCallback):
             use this to change it. It must be a numeric value.
         """
         self.score_key = score_key
-        super().__init__(host=host, port=port, socket=socket, key=key, numeric_type=numeric_type, **kwargs)
+        super().__init__(host=host, port=port, socket=socket,
+                         key=key, numeric_type=numeric_type, **kwargs)
 
     async def writer(self):
         conn = aioredis.from_url(self.redis)
@@ -49,7 +50,8 @@ class RedisZSetCallback(RedisCallback):
             async with self.read_queue() as updates:
                 async with conn.pipeline(transaction=False) as pipe:
                     for update in updates:
-                        pipe = pipe.zadd(f"{self.key}-{update['exchange']}-{update['symbol']}", {json.dumps(update): update[self.score_key]}, nx=True)
+                        pipe = pipe.zadd(f"{self.key}-{update['exchange']}-{update['symbol']}", {
+                                         json.dumps(update): update[self.score_key]}, nx=True)
                     await pipe.execute()
 
         await conn.close()
@@ -71,11 +73,13 @@ class RedisStreamCallback(RedisCallback):
                         elif 'closed' in update:
                             update['closed'] = str(update['closed'])
 
-                        pipe = pipe.xadd(f"{self.key}-{update['exchange']}-{update['symbol']}", update)
+                        pipe = pipe.xadd(
+                            f"{self.key}-{update['exchange']}-{update['symbol']}", update)
                     await pipe.execute()
 
         await conn.close()
         await conn.connection_pool.disconnect()
+
 
 class RedisSubscribeStream(RedisCallback):
 
@@ -97,6 +101,7 @@ class RedisSubscribeStream(RedisCallback):
             await p.unsubscribe(self.key)
 
         await psub.close()
+
 
 class RedisKeyCallback(RedisCallback):
 
@@ -222,8 +227,10 @@ class FillsRedis(RedisZSetCallback, BackendCallback):
 class FillsStream(RedisStreamCallback, BackendCallback):
     default_key = 'fills'
 
+
 class ManagerRedis(RedisZSetCallback, BackendCallback):
     default_key = 'manager'
+
 
 class ManagerStream(RedisSubscribeStream, BackendCallback):
     default_key = 'manager'

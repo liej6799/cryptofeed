@@ -841,3 +841,63 @@ cdef class RefreshSymbols:
     def __hash__(self):
         return hash(self.__repr__())
 
+
+cdef class OpenHighLowCloseVolume:
+    cdef readonly str exchange
+    cdef readonly str symbol
+
+    cdef readonly object open
+    cdef readonly object high
+    cdef readonly object low
+    cdef readonly object close
+    cdef readonly object volume
+
+    cdef readonly object timestamp
+    cdef readonly object raw
+
+    def __init__(self, exchange, symbol, open, high, low, close, volume, timestamp, raw=None):
+        assert timestamp is None or isinstance(timestamp, float)
+
+        self.exchange = exchange
+        self.symbol = symbol
+
+        self.open = open
+        self.high = high
+        self.low = low
+        self.close = close
+        self.volume = volume
+    
+        self.timestamp = timestamp
+        self.raw = raw
+
+    @staticmethod
+    def from_dict(data: dict) -> OpenHighLowCloseVolume:
+        return OpenHighLowCloseVolume(
+            data['exchange'],
+            data['symbol'],
+            data['open'],
+            data['high'],
+            data['low'],
+            data['close'],
+            data['volume'],
+            data['timestamp']
+        )
+
+    cpdef dict to_dict(self, numeric_type=None, none_to=False):
+        if numeric_type is None:
+            data = {'exchange': self.exchange, 'symbol': self.symbol, 'open': self.open, 'high': self.high, 'low': self.low, 'close': self.close , 'volume': self.volume, 'timestamp': self.timestamp}
+        else:
+           data = {'exchange': self.exchange, 'symbol': self.symbol, 'open': numeric_type(self.open), 'high': numeric_type(self.high), 'low': numeric_type(self.low), 'close': numeric_type(self.close) , 'volume': numeric_type(self.volume), 'timestamp': self.timestamp}
+
+        return data if not none_to else convert_none_values(data, none_to)
+
+    def __repr__(self):
+        return f"exchange: {self.exchange} symbol: {self.symbol} open: {self.open} high: {self.high} low: {self.low} close: {self.close} volume: {self.volume} timestamp: {self.timestamp}"
+
+    def __eq__(self, cmp):
+        return self.exchange == cmp.exchange and self.symbol == cmp.symbol and self.open == cmp.open and self.high == cmp.high  and self.low == cmp.low  and self.close == cmp.close  and self.volume == cmp.volume and self.timestamp == cmp.timestamp
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
+

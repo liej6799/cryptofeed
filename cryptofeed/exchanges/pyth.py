@@ -14,11 +14,11 @@ from time import time
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection, RestEndpoint, Routes, WebsocketEndpoint
-from cryptofeed.defines import BID, BUY, ASK, PYTH, L3_BOOK, SELL, TRADES, TICKER
+from cryptofeed.defines import BID, BUY, ASK, PYTH, L3_BOOK, SELL, TRADES, TICKER, REFRESH_SYMBOL
 from cryptofeed.feed import Feed
 from cryptofeed.symbols import Symbol
 from cryptofeed.exceptions import MissingSequenceNumber
-from cryptofeed.types import Trade, OrderBook, Ticker
+from cryptofeed.types import Trade, OrderBook, Ticker, RefreshSymbols
        
 from pythclient.solana import SolanaAccount, SolanaClient, PYTHNET_HTTP_ENDPOINT, PYTHNET_WS_ENDPOINT, SolanaPublicKey
 from pythclient.pythaccounts import PythAccount, PythPriceAccount
@@ -34,6 +34,9 @@ class Pyth(Feed):
     key_seperator = ','
     websocket_channels = {
         TICKER: 'ticker',
+    }
+    rest_channels = {
+        REFRESH_SYMBOL: REFRESH_SYMBOL
     }
     solana_client = SolanaClient(endpoint=PYTHNET_HTTP_ENDPOINT, ws_endpoint=PYTHNET_WS_ENDPOINT)
         
@@ -98,6 +101,13 @@ class Pyth(Feed):
                     result.append({'symbol': pr.product.symbol, 'key':pr.key})
 
             return result
+        
+    async def _refresh_symbol(self, msg, ts):
+        for j in msg.get('data'):
+            t = RefreshSymbols(
+                self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
+            await self.callback(REFRESH_SYMBOL, t, time())
+    
     async def _ticker(cls, msg: dict, timestamp: float):
         """
         {
@@ -125,13 +135,32 @@ class Pyth(Feed):
 
         await cls.callback(TICKER, t, timestamp)
 
-    async def message_handler(cls, msg: str, conn: AsyncConnection, timestamp: float):
-        msg = json.loads(msg, parse_float=Decimal)       
-        if 'aggregate_price_info' in msg:
-            await cls._ticker(msg, timestamp)
+    async def _refresh_symbol(self, msg, ts):
+        for j in msg:
+            t = RefreshSymbols(
+                self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
+            await self.callback(REFRESH_SYMBOL, t, time())
 
+    async def refresh_symbol(self):
+        data = []
+        for j in self.symbols():
+            base, quote = j.split('-')
+            data.append({'base': base, 'quote': quote, 'symbol': j})
+      
+        await self.message_handler({
+            'data': json.dumps(data),
+            'type': REFRESH_SYMBOL
+        }, None, time())
+
+    async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
+        msg_type = msg.get('type')
+        msg = json.loads(msg.get('data'), parse_float=Decimal)
+
+        if msg_type == REFRESH_SYMBOL:
+            await self._refresh_symbol(msg, ts)
+        
         else:
-            LOG.warning("%s: Invalid message type %s", cls.id, msg)
+            LOG.warning("%s: Invalid message type %s", self.id, msg)
 
     async def subscribe(cls, conn: AsyncConnection):
         """

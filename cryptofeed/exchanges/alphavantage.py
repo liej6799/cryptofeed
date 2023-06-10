@@ -14,12 +14,13 @@ import csv
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection, RestEndpoint, Routes, WebsocketEndpoint
-from cryptofeed.defines import BID, BUY, ASK, ALPHAVANTAGE, L3_BOOK, SELL, TRADES, TICKER, DAILY_OHLCV
+from cryptofeed.defines import BID, BUY, ASK, ALPHAVANTAGE, L3_BOOK, SELL, TRADES, TICKER, DAILY_OHLCV, REFRESH_SYMBOL
 from cryptofeed.feed import Feed
 from cryptofeed.symbols import Symbol
 from cryptofeed.exceptions import MissingSequenceNumber
 from cryptofeed.exchanges.mixins.alphavantage_rest import AlphaVantageRestMixin
 from typing import Dict, List, Tuple, Union
+from cryptofeed.types import Trade, OrderBook, Ticker, RefreshSymbols
 
 LOG = logging.getLogger('feedhandler')
 
@@ -33,7 +34,8 @@ class AlphaVantage(Feed, AlphaVantageRestMixin):
     }
 
     rest_channels = {
-        DAILY_OHLCV: DAILY_OHLCV
+        DAILY_OHLCV: DAILY_OHLCV,
+        REFRESH_SYMBOL: REFRESH_SYMBOL
     }
 
 
@@ -64,5 +66,27 @@ class AlphaVantage(Feed, AlphaVantageRestMixin):
         """
         return [ep + '&apikey=' + key_id for ep in ep.route('instruments')]
     
+    async def _refresh_symbol(self, msg, ts):
+        for j in msg:
+            t = RefreshSymbols(
+                self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
+            await self.callback(REFRESH_SYMBOL, t, time())
+
+    async def refresh_symbol(self):
+        data = []
+        for j in self.symbols():
+            base, quote = j.split('-')
+            data.append({'base': base, 'quote': quote, 'symbol': j})
+
+        await self.message_handler({
+            'data': json.dumps(data),
+            'type': REFRESH_SYMBOL
+        }, None, time())
+
     async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
-        print(msg, conn, ts)
+        msg_type = msg.get('type')
+        msg = json.loads(msg.get('data'), parse_float=Decimal)
+
+        if msg_type == REFRESH_SYMBOL:
+            await self._refresh_symbol(msg, ts)
+

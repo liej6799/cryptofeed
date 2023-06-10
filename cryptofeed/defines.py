@@ -68,7 +68,6 @@ UNSUPPORTED = 'unsupported'
 CANDLES = 'candles'
 MANAGER = 'manager'
 MANAGER_STREAM = 'manager_stream'
-SYMBOL = 'tb_symbol'
 DAILY_OHLCV = 'daily_ohlcv'
 
 
@@ -136,13 +135,14 @@ PUT = 'put'
 FX = 'fx'
 
 
-# HTTP methods
+# HTTP methodsSYMBOL
 GET = 'GET'
 DELETE = 'DELETE'
 POST = 'POST'
 
 # REDIS topics
-RTTREFRESHSYMBOLS = 'rtt-refresh-symbols'
+REFRESH_SYMBOL = 'refresh_symbol'
+
 """
 L2 Orderbook Layout
     * BID and ASK are SortedDictionaries
