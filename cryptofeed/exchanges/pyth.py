@@ -170,48 +170,54 @@ class Pyth(Feed):
         subs = []
         all_prices = []
 
-        for chan, symbols in conn.subscription.items():
-            subs.extend([s for s in set([sym.split(",")[1] for sym in symbols])])
-           
-        for s in subs:
-            data = SolanaPublicKey(s)
-            all_prices.append(PythPriceAccount(data, cls.solana_client))
+        if cls.std_channel_to_exchange(TICKER) in conn.subscription:
+        
+            for chan, symbols in conn.subscription.items():
+                subs.extend([s for s in set([sym.split(",")[1] for sym in symbols])])
+            
+            for s in subs:
+                data = SolanaPublicKey(s)
+                all_prices.append(PythPriceAccount(data, cls.solana_client))
 
-        ws = WatchSession(cls.solana_client)
+            ws = WatchSession(cls.solana_client)
 
-        await ws.connect()
-        for account in all_prices:
-            await ws.subscribe(account)
+            await ws.connect()
+            for account in all_prices:
+                await ws.subscribe(account)
 
-        while True:
-            if not conn.is_open:
-                break;
-            update_task = asyncio.create_task(ws.next_update())
             while True:
-                done, _ = await asyncio.wait({update_task}, timeout=1)
-                if update_task in done:
-                    pr = update_task.result()
-   
-                    for sym in symbols:
-                        if str(sym.split(cls.key_seperator)[1]) == str(pr.key):
-                  
-                            data = {
-                                "key" : str(pr.key)
-                                ,'symbol' : sym.split(cls.key_seperator)[0]
-                                ,'exponent' : pr.exponent 
-                                ,'num_components' : pr.num_components 
-                                ,'last_slot' : pr.last_slot 
-                                ,'valid_slot' : pr.valid_slot 
-                                ,'aggregate_price_info' : pr.aggregate_price_info
-                                ,'timestamp' : float(pr.timestamp)
-                                ,'min_publishers' : pr.min_publishers 
-                                ,'prev_slot' : pr.prev_slot 
-                                ,'prev_price' : pr.prev_price 
-                                ,'prev_conf' : pr.prev_conf 
-                                ,'prev_timestamp' : pr.prev_timestamp 
-                            } 
-                            await cls.message_handler(json.dumps(data), conn, time())
-
+                if not conn.is_open:
                     break
+                update_task = asyncio.create_task(ws.next_update())
+                while True:
+                    done, _ = await asyncio.wait({update_task}, timeout=1)
+                    if update_task in done:
+                        pr = update_task.result()
+    
+                        for sym in symbols:
+                            if str(sym.split(cls.key_seperator)[1]) == str(pr.key):
+                    
+                                data = {
+                                    "key" : str(pr.key)
+                                    ,'symbol' : sym.split(cls.key_seperator)[0]
+                                    ,'exponent' : pr.exponent 
+                                    ,'num_components' : pr.num_components 
+                                    ,'last_slot' : pr.last_slot 
+                                    ,'valid_slot' : pr.valid_slot 
+                                    ,'aggregate_price_info' : pr.aggregate_price_info
+                                    ,'timestamp' : float(pr.timestamp)
+                                    ,'min_publishers' : pr.min_publishers 
+                                    ,'prev_slot' : pr.prev_slot 
+                                    ,'prev_price' : pr.prev_price 
+                                    ,'prev_conf' : pr.prev_conf 
+                                    ,'prev_timestamp' : pr.prev_timestamp 
+                                } 
 
-        await ws.disconnect()
+                                await cls.message_handler({
+                                    'data': json.dumps(data),
+                                    'type': TICKER
+                                }, conn, time())
+
+                        break
+
+            await ws.disconnect()

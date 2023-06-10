@@ -28,7 +28,7 @@ class AlphaVantageRestMixin(RestExchange):
         DAILY_OHLCV 
     )
     
-    async def _request(self, method: str, endpoint: str, auth: bool = False, payload={}, api=None):
+    async def _request(self, method: str, endpoint: str, auth: bool = False, payload={}, api=None, type=None):
         query_string = urlencode(payload)
 
         if auth:
@@ -44,13 +44,16 @@ class AlphaVantageRestMixin(RestExchange):
       
         header = {}
         if method == GET:
-            data = await self.http_conn.read(url, header=header)
+            data = await self.http_conn.read(url, header=header, type=type)
         elif method == POST:
-            data = await self.http_conn.write(url, msg=None, header=header)
+            data = await self.http_conn.write(url, msg=None, header=header, type=type)
         elif method == DELETE:
-            data = await self.http_conn.delete(url, header=header)
-        return json.loads(data, parse_float=Decimal)
+            data = await self.http_conn.delete(url, header=header, type=type)
 
-    async def daily_ohlcv(self, symbol: str = None):
-        await self._request(GET, 'query', auth=True, payload={'function': 'TIME_SERIES_DAILY_ADJUSTED', 'symbol': self.std_symbol_to_exchange_symbol(symbol), 'outputsize': 'full'})
+        return data
+
+    async def daily_ohlcv(self):
+        if self.std_channel_to_exchange(DAILY_OHLCV) in self.subscription:
+            for pair in self.subscription[DAILY_OHLCV]:
+                await self._request(GET, 'query', auth=True, payload={'function': 'TIME_SERIES_DAILY_ADJUSTED', 'symbol': pair, 'outputsize': 'full'}, type=DAILY_OHLCV)
     

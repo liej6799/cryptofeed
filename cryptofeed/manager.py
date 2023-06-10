@@ -60,27 +60,35 @@ class Manager(FeedHandler):
                         self.daily_ohlcv(loop)
                         break
 
-    async def refresh_symbols(self, loop):
+    async def refresh_symbols(self):
         # fire and forget
         for i in self.feeds:
-            await loop.create_task(i[REFRESH_SYMBOL]())
+            asyncio.ensure_future(i[REFRESH_SYMBOL]())
 
-    async def daily_ohlcv(self, loop):
+    async def daily_ohlcv(self):
         # fire and forget
         for i in self.feeds:
-            await i[DAILY_OHLCV]()
+            asyncio.ensure_future(i[DAILY_OHLCV]())
 
     async def ticker(self, t, receipt_timestamp):
         print(f'Ticker received at {receipt_timestamp}: {t}')
 
     def setup_manager(self, loop):
 
-        self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD'], channels=[REFRESH_SYMBOL], config=self.config,
-                             callbacks={REFRESH_SYMBOL: SymbolPostgres()}))
+        print('setup mgr')
+        # self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD'], channels=[REFRESH_SYMBOL], config=self.config,
+        #                      callbacks={REFRESH_SYMBOL: SymbolPostgres()}))
+        
+        # self.add_feed(Pyth(loop=loop, symbols=['BTC-USD'], channels=[REFRESH_SYMBOL, TICKER], config=self.config,
+        #     callbacks={REFRESH_SYMBOL: SymbolPostgres(), TICKER: self.ticker}))
+
+        self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD'], channels=[REFRESH_SYMBOL, DAILY_OHLCV], config=self.config,
+                             callbacks={REFRESH_SYMBOL: SymbolPostgres(), DAILY_OHLCV: self.ticker}))
 
         # print(self.feeds[-1].daily_ohlcv_sync('TSLA-USD'))
         # once task is created, cant perform run_until_complete, use await instead
         # self.daily_ohlcv(loop)
         #loop.create_task(self.redis_handler(loop))
 
-        loop.create_task(self.refresh_symbols(loop))
+        loop.create_task(self.refresh_symbols())
+        loop.create_task(self.daily_ohlcv())

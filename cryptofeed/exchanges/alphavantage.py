@@ -20,8 +20,8 @@ from cryptofeed.symbols import Symbol
 from cryptofeed.exceptions import MissingSequenceNumber
 from cryptofeed.exchanges.mixins.alphavantage_rest import AlphaVantageRestMixin
 from typing import Dict, List, Tuple, Union
-from cryptofeed.types import Trade, OrderBook, Ticker, RefreshSymbols
-
+from cryptofeed.types import Trade, OrderBook, Ticker, RefreshSymbols, OpenHighLowCloseVolume
+from datetime import datetime
 LOG = logging.getLogger('feedhandler')
 
 class AlphaVantage(Feed, AlphaVantageRestMixin):
@@ -70,7 +70,7 @@ class AlphaVantage(Feed, AlphaVantageRestMixin):
         for j in msg:
             t = RefreshSymbols(
                 self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
-            await self.callback(REFRESH_SYMBOL, t, time())
+            await self.callback(REFRESH_SYMBOL, t, ts)
 
     async def refresh_symbol(self):
         data = []
@@ -83,10 +83,27 @@ class AlphaVantage(Feed, AlphaVantageRestMixin):
             'type': REFRESH_SYMBOL
         }, None, time())
 
+    async def _daily_ohlcv(self, msg, ts):
+        for i in msg['Time Series (Daily)'].items():
+            t = OpenHighLowCloseVolume(
+                self.id,
+                self.exchange_symbol_to_std_symbol(msg['Meta Data']['2. Symbol']),
+                i[0], # date
+                i[1]['1. open'],
+                i[1]['2. high'],
+                i[1]['3. low'],
+                i[1]['4. close'],
+                i[1]['6. volume'],
+                self._datetime_normalize(datetime.combine(i[0], datetime.min.time())),
+            )
+            await self.callback(DAILY_OHLCV, t, ts)
+            
     async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
         msg_type = msg.get('type')
         msg = json.loads(msg.get('data'), parse_float=Decimal)
 
         if msg_type == REFRESH_SYMBOL:
             await self._refresh_symbol(msg, ts)
-
+        if msg_type == DAILY_OHLCV:
+            await self._daily_ohlcv(msg, ts)
+     

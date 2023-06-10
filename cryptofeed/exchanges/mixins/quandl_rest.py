@@ -28,7 +28,7 @@ class QuandlRestMixin(RestExchange):
         DAILY_OHLCV
     )
 
-    async def _request(self, method: str, endpoint: str, auth: bool = False, payload={}, api=None):
+    async def _request(self, method: str, endpoint: str, auth: bool = False, payload={}, api=None, type=None):
 
         query_string = urlencode(payload)
 
@@ -46,16 +46,18 @@ class QuandlRestMixin(RestExchange):
 
         header = {}
         if method == GET:
-            data = await self.http_conn.read(url, header=header, type=DAILY_OHLCV)
+            data = await self.http_conn.read(url, header=header, type=type)
         elif method == POST:
-            data = await self.http_conn.write(url, msg=None, header=header, type=DAILY_OHLCV)
+            data = await self.http_conn.write(url, msg=None, header=header, type=type)
         elif method == DELETE:
-            data = await self.http_conn.delete(url, header=header, type=DAILY_OHLCV)
+            data = await self.http_conn.delete(url, header=header, type=type)
 
         return data
 
     async def daily_ohlcv(self):
 
         # loop through all symbols and get daily ohlcv
-        for pair in self.subscription[DAILY_OHLCV]:
-            await self._request(GET, 'WIKI/PRICES.json', auth=True, payload={'ticker': (pair)})
+        if self.std_channel_to_exchange(DAILY_OHLCV) in self.subscription:
+            for pair in self.subscription[DAILY_OHLCV]:
+                await self._request(GET, 'WIKI/PRICES.json', auth=True, payload={'ticker': (pair)}, type=DAILY_OHLCV)
+        

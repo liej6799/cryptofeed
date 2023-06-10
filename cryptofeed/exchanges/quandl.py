@@ -20,6 +20,7 @@ from cryptofeed.symbols import Symbol
 from cryptofeed.exceptions import MissingSequenceNumber
 from typing import Dict, List, Tuple, Union
 from cryptofeed.exchanges.mixins.quandl_rest import QuandlRestMixin
+from datetime import datetime
 LOG = logging.getLogger('feedhandler')
 
 
@@ -65,14 +66,23 @@ class Quandl(Feed, QuandlRestMixin):
         for j in msg:
             t = RefreshSymbols(
                 self.id, j['symbol'], j['base'], j['quote'], ts, raw=j)
-            await self.callback(REFRESH_SYMBOL, t, time())
+            await self.callback(REFRESH_SYMBOL, t, ts)
 
     async def _daily_ohlcv(self, msg, ts):
 
         for i in msg['datatable']['data']:
-            # t = OpenHighLowCloseVolume(self.id,
-            #                            i[0])
-            print(i)
+            t = OpenHighLowCloseVolume(
+                self.id,
+                self.exchange_symbol_to_std_symbol(i[0]),
+                i[1],
+                i[2],
+                i[3],
+                i[4],
+                i[5],
+                i[6],
+                self._datetime_normalize(datetime.combine(i[1], datetime.min.time())),
+            )
+            await self.callback(DAILY_OHLCV, t, ts)
 
     async def message_handler(self, msg: str, conn: AsyncConnection, ts: float):
         msg_type = msg.get('type')

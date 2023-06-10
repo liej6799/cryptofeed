@@ -116,15 +116,12 @@ class FeedHandler:
         if loop is None:
             loop = asyncio.get_event_loop()
 
-        if install_manager:
-            self.manager = ManagerStream(feed=self.feeds[-1])
-
         if self.running:
             if loop is None:
                 loop = asyncio.get_event_loop()
 
             self.feeds[-1].start(loop)
-            self.manager.start(loop)
+         
 
     def add_nbbo(self, feeds: List[Feed], symbols: List[str], callback, config=None):
         """
@@ -158,7 +155,6 @@ class FeedHandler:
         exception_handler: asyncio exception handler function pointer
             a custom exception handler for asyncio
         """
-
         self.running = True
         loop = asyncio.get_event_loop()
         # Good to enable when debugging or without code change: export PYTHONASYNCIODEBUG=1)
@@ -166,15 +162,15 @@ class FeedHandler:
 
         if install_signal_handlers:
             setup_signal_handlers(loop)
-        if install_manager:
-            self.setup_manager(loop)
 
         for feed in self.feeds:
             feed.start(loop)
 
         if not start_loop:
             return
-
+        
+        if install_manager:
+            self.setup_manager(loop)
         try:
             if exception_handler:
                 loop.set_exception_handler(exception_handler)
@@ -230,7 +226,7 @@ class FeedHandler:
         self.running = True
         if not loop:
             loop = asyncio.get_event_loop()
-
+        print('_start')
         LOG.info('FH: start connections handlers in feeds')
         for feed in self.feeds:
             feed.start(loop)
