@@ -12,11 +12,11 @@ import asyncpg
 from yapic import json
 
 from cryptofeed.backends.backend import BackendBookCallback, BackendCallback, BackendQueue
-from cryptofeed.defines import CANDLES, FUNDING, OPEN_INTEREST, TICKER, TRADES, LIQUIDATIONS, INDEX, REFRESH_SYMBOL
+from cryptofeed.defines import CANDLES, FUNDING, OPEN_INTEREST, TICKER, TRADES, LIQUIDATIONS, INDEX, REFRESH_SYMBOL, DAILY_OHLCV
 
 
 class PostgresCallback(BackendQueue):
-    def __init__(self, host='192.168.191.59', user='postgres', pw='password', db='rtt-db', port=5432, table=None, custom_columns: dict = None, none_to=None, numeric_type=float, **kwargs):
+    def __init__(self, host='192.168.191.213', user='postgres', pw='password', db='rtt-db', port=5432, table=None, custom_columns: dict = None, none_to=None, numeric_type=float, **kwargs):
         """
         host: str
             Database host address
@@ -104,7 +104,6 @@ class PostgresCallback(BackendQueue):
                     await self.conn.execute(self.insert_statement + args_str)
                 else:
                     await self.conn.execute(f"INSERT INTO {self.table} VALUES {args_str} ON CONFLICT DO NOTHING")
-
             except Exception as a:
                 print(a)
                 # when restarting a subscription, some exchanges will re-publish a few messages
@@ -237,3 +236,13 @@ class SymbolPostgres(PostgresCallback, BackendCallback):
     def format(self, data: Tuple):
         exchange, symbol, timestamp, receipt, data = data
         return f"(DEFAULT,'{timestamp}','{receipt}','{exchange}','{symbol}','{data['base_symbol']}','{data['quote_symbol']}')"
+
+class DailyOHLVCPostgres(PostgresCallback, BackendCallback):
+    default_key = DAILY_OHLCV    
+    default_table = 'tb_daily_ohlvc'
+
+
+    def format(self, data: Tuple):
+        exchange, symbol, timestamp, receipt, data = data
+
+        return f"(DEFAULT,'{timestamp}','{receipt}','{exchange}','{symbol}','{data['date']}','{data['open']}','{data['high']}','{data['low']}','{data['close']}','{data['volume']}')"
