@@ -237,10 +237,10 @@ class SymbolPostgres(PostgresCallback, BackendCallback):
         exchange, symbol, timestamp, receipt, data = data
         return f"(DEFAULT,'{timestamp}','{receipt}','{exchange}','{symbol}','{data['base_symbol']}','{data['quote_symbol']}')"
 
-class DailyOHLVCPostgres(PostgresCallback, BackendCallback):
-    default_key = DAILY_OHLCV    
-    default_table = 'tb_daily_ohlvc'
 
+class DailyOHLVCPostgres(PostgresCallback, BackendCallback):
+    default_key = DAILY_OHLCV
+    default_table = 'tb_daily_ohlvc'
 
     def format(self, data: Tuple):
         exchange, symbol, timestamp, receipt, data = data

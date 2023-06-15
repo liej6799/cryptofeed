@@ -77,10 +77,10 @@ class Manager(FeedHandler):
 
         print('setup mgr')
         self.add_feed(AlphaVantage(loop=loop, symbols=['AAPL-USD', 'TSLA-USD', 'MSFT-USD'], channels=[REFRESH_SYMBOL, DAILY_OHLCV], config=self.config,
-                              callbacks={REFRESH_SYMBOL: SymbolPostgres(), DAILY_OHLCV: DailyOHLVCPostgres()}))
-        
-        # self.add_feed(Pyth(loop=loop, symbols=['BTC-USD'], channels=[REFRESH_SYMBOL, TICKER], config=self.config,
-        #     callbacks={REFRESH_SYMBOL: SymbolPostgres(), TICKER: self.ticker}))
+                                   callbacks={REFRESH_SYMBOL: SymbolPostgres(), DAILY_OHLCV: DailyOHLVCPostgres()}))
+
+        self.add_feed(Pyth(loop=loop, symbols=['BTC-USD'], channels=[REFRESH_SYMBOL, TICKER], config=self.config,
+                           callbacks={REFRESH_SYMBOL: SymbolPostgres(), TICKER: self.ticker}))
 
         self.add_feed(Quandl(loop=loop, symbols=['AAPL-USD', 'TSLA-USD', 'MSFT-USD'], channels=[REFRESH_SYMBOL, DAILY_OHLCV], config=self.config,
                              callbacks={REFRESH_SYMBOL: SymbolPostgres(), DAILY_OHLCV: DailyOHLVCPostgres()}))
@@ -88,7 +88,7 @@ class Manager(FeedHandler):
         # print(self.feeds[-1].daily_ohlcv_sync('TSLA-USD'))
         # once task is created, cant perform run_until_complete, use await instead
         # self.daily_ohlcv(loop)
-        #loop.create_task(self.redis_handler(loop))
+        # loop.create_task(self.redis_handler(loop))
 
-        # loop.create_task(self.refresh_symbols())
-        loop.create_task(self.daily_ohlcv())
+        loop.create_task(self.refresh_symbols())
+        # loop.create_task(self.daily_ohlcv())
